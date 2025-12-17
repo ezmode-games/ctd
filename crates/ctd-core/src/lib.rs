@@ -20,12 +20,16 @@ pub enum CtdError {
     #[error("Configuration error: {0}")]
     Config(String),
 
+    /// Validation failed for input data.
+    #[error("Validation error: {0}")]
+    Validation(String),
+
     /// Failed to parse a load order file or data.
     #[error("Failed to parse load order: {0}")]
     LoadOrderParse(String),
 
     /// Failed to serialize or deserialize data.
-    #[error("Failed to serialize crash report: {0}")]
+    #[error("Serialization error: {0}")]
     Serialize(#[from] serde_json::Error),
 
     /// An API request failed.
