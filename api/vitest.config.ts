@@ -11,5 +11,8 @@ export default defineConfig({
 		globals: true,
 		environment: 'node',
 		include: ['test/**/*.test.ts'],
+		env: {
+			DATABASE_URL: ':memory:',
+		},
 	},
 });
