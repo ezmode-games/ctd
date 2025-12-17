@@ -1,0 +1,13 @@
+# Cargo build configuration for CTD workspace
+
+[build]
+# Use all available CPU cores for parallel compilation
+jobs = -1
+
+[target.'cfg(all())']
+# Enable warnings for all targets
+rustflags = ["-D", "warnings"]
+
+[env]
+# Default log level for development
+RUST_LOG = { value = "info", force = false }
