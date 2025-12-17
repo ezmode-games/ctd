@@ -1,84 +1,28 @@
 //! API client for backend communication.
 //!
 //! This module provides an HTTP client for communicating with the CTD backend API.
+//! Configuration is loaded from `ctd.toml` or environment variables.
 
 use tracing::{debug, instrument};
 
+use crate::config::{ApiConfig, Config};
 use crate::crash_report::CrashReport;
 use crate::{CtdError, Result};
-
-/// Default base URL for local development.
-pub const DEFAULT_BASE_URL: &str = "http://localhost:3000";
-
-/// Default API path for crash reports.
-pub const DEFAULT_CRASHES_PATH: &str = "/crashes";
-
-/// Configuration for the API client.
-#[derive(Debug, Clone)]
-pub struct ApiClientConfig {
-    /// Base URL of the API server.
-    pub base_url: String,
-    /// API path for crash reports endpoint.
-    pub crashes_path: String,
-    /// Optional API key for authentication.
-    pub api_key: Option<String>,
-    /// Request timeout in seconds.
-    pub timeout_secs: u64,
-}
-
-impl Default for ApiClientConfig {
-    fn default() -> Self {
-        Self {
-            base_url: DEFAULT_BASE_URL.to_string(),
-            crashes_path: DEFAULT_CRASHES_PATH.to_string(),
-            api_key: None,
-            timeout_secs: 30,
-        }
-    }
-}
-
-impl ApiClientConfig {
-    /// Creates a new configuration with the specified base URL.
-    pub fn new(base_url: impl Into<String>) -> Self {
-        Self {
-            base_url: base_url.into(),
-            ..Default::default()
-        }
-    }
-
-    /// Sets the crashes endpoint path.
-    pub fn with_crashes_path(mut self, path: impl Into<String>) -> Self {
-        self.crashes_path = path.into();
-        self
-    }
-
-    /// Sets the API key.
-    pub fn with_api_key(mut self, api_key: impl Into<String>) -> Self {
-        self.api_key = Some(api_key.into());
-        self
-    }
-
-    /// Sets the timeout in seconds.
-    pub fn with_timeout(mut self, timeout_secs: u64) -> Self {
-        self.timeout_secs = timeout_secs;
-        self
-    }
-}
 
 /// HTTP client for the CTD API.
 #[derive(Debug, Clone)]
 pub struct ApiClient {
-    config: ApiClientConfig,
+    config: ApiConfig,
     client: reqwest::Client,
 }
 
 impl ApiClient {
-    /// Creates a new API client with the given configuration.
+    /// Creates a new API client with the given API configuration.
     ///
     /// # Errors
     ///
     /// Returns `CtdError::ApiRequest` if the HTTP client cannot be created.
-    pub fn new(config: ApiClientConfig) -> Result<Self> {
+    pub fn new(config: ApiConfig) -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(config.timeout_secs))
             .build()
@@ -87,13 +31,30 @@ impl ApiClient {
         Ok(Self { config, client })
     }
 
+    /// Creates a new API client by loading configuration from file/environment.
+    ///
+    /// Loads config from `ctd.toml` or environment variables.
+    /// See [`Config::load`] for search order.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CtdError::Config` if config loading fails, or
+    /// `CtdError::ApiRequest` if the HTTP client cannot be created.
+    pub fn from_config() -> Result<Self> {
+        let config = Config::load()?;
+        Self::new(config.api)
+    }
+
     /// Creates a new API client with default configuration.
+    ///
+    /// Uses hardcoded defaults (localhost:3000). Prefer [`ApiClient::from_config`]
+    /// for production use.
     ///
     /// # Errors
     ///
     /// Returns `CtdError::ApiRequest` if the HTTP client cannot be created.
     pub fn with_defaults() -> Result<Self> {
-        Self::new(ApiClientConfig::default())
+        Self::new(ApiConfig::default())
     }
 
     /// Submits a crash report to the API.
@@ -103,7 +64,7 @@ impl ApiClient {
     /// Returns `CtdError::ApiRequest` if the request fails.
     #[instrument(skip(self, report), fields(game = %report.game))]
     pub async fn submit_crash_report(&self, report: &CrashReport) -> Result<String> {
-        let url = format!("{}{}", self.config.base_url, self.config.crashes_path);
+        let url = format!("{}{}", self.config.url, self.config.crashes_path);
         debug!("Submitting crash report to {}", url);
 
         let mut request = self.client.post(&url).json(report);
@@ -139,10 +100,7 @@ impl ApiClient {
     /// Returns `CtdError::ApiRequest` if the request fails.
     #[instrument(skip(self))]
     pub async fn get_crash_report(&self, id: &str) -> Result<CrashReport> {
-        let url = format!(
-            "{}{}/{}",
-            self.config.base_url, self.config.crashes_path, id
-        );
+        let url = format!("{}{}/{}", self.config.url, self.config.crashes_path, id);
         debug!("Fetching crash report from {}", url);
 
         let mut request = self.client.get(&url);
@@ -173,35 +131,14 @@ impl ApiClient {
 
     /// Returns the base URL of the API.
     pub fn base_url(&self) -> &str {
-        &self.config.base_url
+        &self.config.url
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn default_config() {
-        let config = ApiClientConfig::default();
-        assert_eq!(config.base_url, DEFAULT_BASE_URL);
-        assert_eq!(config.crashes_path, DEFAULT_CRASHES_PATH);
-        assert!(config.api_key.is_none());
-        assert_eq!(config.timeout_secs, 30);
-    }
-
-    #[test]
-    fn config_builder() {
-        let config = ApiClientConfig::new("https://test.example.com")
-            .with_crashes_path("/api/v1/crashes")
-            .with_api_key("secret")
-            .with_timeout(60);
-
-        assert_eq!(config.base_url, "https://test.example.com");
-        assert_eq!(config.crashes_path, "/api/v1/crashes");
-        assert_eq!(config.api_key, Some("secret".to_string()));
-        assert_eq!(config.timeout_secs, 60);
-    }
+    use crate::config::DEFAULT_API_URL;
 
     #[test]
     fn client_creation() {
@@ -212,6 +149,18 @@ mod tests {
     #[test]
     fn client_base_url() {
         let client = ApiClient::with_defaults().unwrap();
-        assert_eq!(client.base_url(), DEFAULT_BASE_URL);
+        assert_eq!(client.base_url(), DEFAULT_API_URL);
+    }
+
+    #[test]
+    fn client_with_custom_config() {
+        let config = ApiConfig {
+            url: "https://custom.example.com".to_string(),
+            crashes_path: "/api/v2/crashes".to_string(),
+            api_key: Some("test-key".to_string()),
+            timeout_secs: 60,
+        };
+        let client = ApiClient::new(config).unwrap();
+        assert_eq!(client.base_url(), "https://custom.example.com");
     }
 }

@@ -1,11 +1,13 @@
 //! CTD Core Library
 //!
 //! This crate provides core functionality for the CTD (Crash To Desktop) project:
+//! - Configuration management
 //! - Load order parsing and management
 //! - Crash report generation and serialization
 //! - API client for backend communication
 
 pub mod api_client;
+pub mod config;
 pub mod crash_report;
 pub mod load_order;
 
@@ -14,6 +16,10 @@ use thiserror::Error;
 /// Error types for CTD operations.
 #[derive(Error, Debug)]
 pub enum CtdError {
+    /// Failed to load or parse configuration.
+    #[error("Configuration error: {0}")]
+    Config(String),
+
     /// Failed to parse a load order file or data.
     #[error("Failed to parse load order: {0}")]
     LoadOrderParse(String),

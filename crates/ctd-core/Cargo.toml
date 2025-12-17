@@ -13,5 +13,7 @@ tokio.workspace = true
 reqwest.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+toml = "0.9.8"
+dirs = "6.0.0"
 
 [dev-dependencies]
