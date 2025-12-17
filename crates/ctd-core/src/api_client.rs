@@ -6,7 +6,7 @@
 use tracing::{debug, instrument};
 
 use crate::config::{ApiConfig, Config};
-use crate::crash_report::CrashReport;
+use crate::crash_report::{CrashReportResponse, CreateCrashReport};
 use crate::{CtdError, Result};
 
 /// HTTP client for the CTD API.
@@ -62,8 +62,11 @@ impl ApiClient {
     /// # Errors
     ///
     /// Returns `CtdError::ApiRequest` if the request fails.
-    #[instrument(skip(self, report), fields(game = %report.game))]
-    pub async fn submit_crash_report(&self, report: &CrashReport) -> Result<String> {
+    #[instrument(skip(self, report), fields(game_id = %report.game_id))]
+    pub async fn submit_crash_report(
+        &self,
+        report: &CreateCrashReport,
+    ) -> Result<CrashReportResponse> {
         let url = format!("{}{}", self.config.url, self.config.crashes_path);
         debug!("Submitting crash report to {}", url);
 
@@ -79,54 +82,20 @@ impl ApiClient {
             .map_err(|e| CtdError::ApiRequest(e.to_string()))?;
 
         if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
             return Err(CtdError::ApiRequest(format!(
-                "Server returned status {}",
-                response.status()
+                "Server returned status {}: {}",
+                status, body
             )));
         }
 
-        let body = response
-            .text()
-            .await
-            .map_err(|e| CtdError::ApiRequest(e.to_string()))?;
-
-        Ok(body)
-    }
-
-    /// Retrieves a crash report by ID.
-    ///
-    /// # Errors
-    ///
-    /// Returns `CtdError::ApiRequest` if the request fails.
-    #[instrument(skip(self))]
-    pub async fn get_crash_report(&self, id: &str) -> Result<CrashReport> {
-        let url = format!("{}{}/{}", self.config.url, self.config.crashes_path, id);
-        debug!("Fetching crash report from {}", url);
-
-        let mut request = self.client.get(&url);
-
-        if let Some(ref api_key) = self.config.api_key {
-            request = request.header("Authorization", format!("Bearer {}", api_key));
-        }
-
-        let response = request
-            .send()
-            .await
-            .map_err(|e| CtdError::ApiRequest(e.to_string()))?;
-
-        if !response.status().is_success() {
-            return Err(CtdError::ApiRequest(format!(
-                "Server returned status {}",
-                response.status()
-            )));
-        }
-
-        let report: CrashReport = response
+        let result: CrashReportResponse = response
             .json()
             .await
             .map_err(|e| CtdError::ApiRequest(e.to_string()))?;
 
-        Ok(report)
+        Ok(result)
     }
 
     /// Returns the base URL of the API.
