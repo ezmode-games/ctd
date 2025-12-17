@@ -17,7 +17,7 @@ describe('POST /crashes', () => {
 		const json = await res.json();
 		expect(json.id).toBeDefined();
 		expect(json.shareToken).toBeDefined();
-		expect(json.shareToken).toHaveLength(16);
+		expect(json.shareToken.length).toBeGreaterThanOrEqual(12);
 	});
 
 	it('accepts optional crashHash', async () => {

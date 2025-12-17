@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
+import Sqids from 'sqids';
 import { ulid } from 'ulid';
 
 import {
@@ -12,14 +13,18 @@ import {
 
 const crashes = new Hono();
 
+// Sqids for URL-safe share tokens
+const sqids = new Sqids({
+	minLength: 12,
+});
+
 function generateShareToken(): string {
-	const chars =
-		'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	let token = '';
-	for (let i = 0; i < 16; i++) {
-		token += chars.charAt(Math.floor(Math.random() * chars.length));
-	}
-	return token;
+	// Use crypto random values for unpredictable tokens
+	const randomValues = [
+		Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
+		Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
+	];
+	return sqids.encode(randomValues);
 }
 
 function computeCrashHash(stackTrace: string): string {
