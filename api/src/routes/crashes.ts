@@ -10,6 +10,7 @@ import {
 	createCrashReportSchema,
 	db,
 } from '@/db/index';
+import { computeCrashHash } from '@/lib/crash-hash';
 
 const crashes = new Hono();
 
@@ -25,23 +26,6 @@ function generateShareToken(): string {
 		Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
 	];
 	return sqids.encode(randomValues);
-}
-
-function computeCrashHash(stackTrace: string): string {
-	// Simple hash - will be replaced with proper implementation
-	const normalized = stackTrace
-		.split('\n')
-		.slice(0, 10)
-		.map((line) => line.trim().toLowerCase())
-		.join('|');
-
-	let hash = 0;
-	for (let i = 0; i < normalized.length; i++) {
-		const char = normalized.charCodeAt(i);
-		hash = (hash << 5) - hash + char;
-		hash = hash & hash;
-	}
-	return Math.abs(hash).toString(16).padStart(16, '0').slice(0, 16);
 }
 
 // POST /crashes - Submit a crash report
