@@ -7,11 +7,19 @@ use tracing::{debug, instrument};
 use crate::crash_report::CrashReport;
 use crate::{CtdError, Result};
 
+/// Default base URL for local development.
+pub const DEFAULT_BASE_URL: &str = "http://localhost:3000";
+
+/// Default API path for crash reports.
+pub const DEFAULT_CRASHES_PATH: &str = "/crashes";
+
 /// Configuration for the API client.
 #[derive(Debug, Clone)]
 pub struct ApiClientConfig {
     /// Base URL of the API server.
     pub base_url: String,
+    /// API path for crash reports endpoint.
+    pub crashes_path: String,
     /// Optional API key for authentication.
     pub api_key: Option<String>,
     /// Request timeout in seconds.
@@ -21,7 +29,8 @@ pub struct ApiClientConfig {
 impl Default for ApiClientConfig {
     fn default() -> Self {
         Self {
-            base_url: "https://api.ctd.ezmode.games".to_string(),
+            base_url: DEFAULT_BASE_URL.to_string(),
+            crashes_path: DEFAULT_CRASHES_PATH.to_string(),
             api_key: None,
             timeout_secs: 30,
         }
@@ -35,6 +44,12 @@ impl ApiClientConfig {
             base_url: base_url.into(),
             ..Default::default()
         }
+    }
+
+    /// Sets the crashes endpoint path.
+    pub fn with_crashes_path(mut self, path: impl Into<String>) -> Self {
+        self.crashes_path = path.into();
+        self
     }
 
     /// Sets the API key.
@@ -88,7 +103,7 @@ impl ApiClient {
     /// Returns `CtdError::ApiRequest` if the request fails.
     #[instrument(skip(self, report), fields(game = %report.game))]
     pub async fn submit_crash_report(&self, report: &CrashReport) -> Result<String> {
-        let url = format!("{}/v1/crash-reports", self.config.base_url);
+        let url = format!("{}{}", self.config.base_url, self.config.crashes_path);
         debug!("Submitting crash report to {}", url);
 
         let mut request = self.client.post(&url).json(report);
@@ -124,7 +139,10 @@ impl ApiClient {
     /// Returns `CtdError::ApiRequest` if the request fails.
     #[instrument(skip(self))]
     pub async fn get_crash_report(&self, id: &str) -> Result<CrashReport> {
-        let url = format!("{}/v1/crash-reports/{}", self.config.base_url, id);
+        let url = format!(
+            "{}{}/{}",
+            self.config.base_url, self.config.crashes_path, id
+        );
         debug!("Fetching crash report from {}", url);
 
         let mut request = self.client.get(&url);
@@ -166,7 +184,8 @@ mod tests {
     #[test]
     fn default_config() {
         let config = ApiClientConfig::default();
-        assert_eq!(config.base_url, "https://api.ctd.ezmode.games");
+        assert_eq!(config.base_url, DEFAULT_BASE_URL);
+        assert_eq!(config.crashes_path, DEFAULT_CRASHES_PATH);
         assert!(config.api_key.is_none());
         assert_eq!(config.timeout_secs, 30);
     }
@@ -174,10 +193,12 @@ mod tests {
     #[test]
     fn config_builder() {
         let config = ApiClientConfig::new("https://test.example.com")
+            .with_crashes_path("/api/v1/crashes")
             .with_api_key("secret")
             .with_timeout(60);
 
         assert_eq!(config.base_url, "https://test.example.com");
+        assert_eq!(config.crashes_path, "/api/v1/crashes");
         assert_eq!(config.api_key, Some("secret".to_string()));
         assert_eq!(config.timeout_secs, 60);
     }
@@ -191,6 +212,6 @@ mod tests {
     #[test]
     fn client_base_url() {
         let client = ApiClient::with_defaults().unwrap();
-        assert_eq!(client.base_url(), "https://api.ctd.ezmode.games");
+        assert_eq!(client.base_url(), DEFAULT_BASE_URL);
     }
 }
