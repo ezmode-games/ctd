@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["ctd-core"]
+members = ["ctd-core", "ctd-cyberpunk"]
 
 [workspace.package]
 version = "0.1.0"
