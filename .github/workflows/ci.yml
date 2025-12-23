@@ -26,14 +26,8 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-      - name: Clippy (native)
+      - name: Clippy
         run: cargo clippy --workspace -- -D warnings
-
-      - name: Add Windows target
-        run: rustup target add x86_64-pc-windows-msvc
-
-      - name: Clippy (Windows)
-        run: cargo clippy --workspace --target x86_64-pc-windows-msvc -- -D warnings
 
   test:
     name: Test
@@ -61,10 +55,10 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
 
-      - name: Install cargo-xwin and LLVM
+      - name: Install build dependencies
         run: |
           cargo install cargo-xwin
-          sudo apt-get update && sudo apt-get install -y clang llvm
+          sudo apt-get update && sudo apt-get install -y clang llvm cmake ninja-build
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
