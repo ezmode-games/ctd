@@ -1,0 +1,45 @@
+[package]
+name = "ctd-cyberpunk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "RED4ext plugin for Cyberpunk 2077 crash capture and reporting"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Core CTD library
+ctd-core = { path = "../ctd-core" }
+
+# Async runtime for fire-and-forget API calls
+tokio = { version = "1", features = ["rt", "net", "sync"] }
+
+# Filesystem scanning
+walkdir = "2"
+
+# Error handling
+thiserror.workspace = true
+
+# Logging
+tracing.workspace = true
+
+# Windows-specific dependencies (including RED4ext which only builds on Windows)
+[target.'cfg(windows)'.dependencies]
+# RED4ext Rust bindings
+red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", features = ["log"] }
+
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Threading",
+    "Win32_System_LibraryLoader",
+    "Win32_System_ProcessStatus",
+    "Win32_System_SystemInformation",
+    "Win32_Storage_FileSystem",
+] }
+
+crash-handler = "0.6"
+crash-context = "0.6"
+minidump-writer = "0.10"
