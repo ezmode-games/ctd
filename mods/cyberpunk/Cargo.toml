@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Core CTD library
-ctd-core = { path = "../ctd-core" }
+ctd-core = { path = "../../lib/ctd-core" }
 
 # Async runtime for fire-and-forget API calls
 tokio = { version = "1", features = ["rt", "net", "sync"] }

@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "*-v*" # Per-mod tags like "cyberpunk-v1.0.0"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-release:
+    name: Build Release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-pc-windows-msvc]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cargo-xwin and LLVM
+        run: |
+          cargo install cargo-xwin
+          sudo apt-get update && sudo apt-get install -y clang llvm
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories: ~/.cache/cargo-xwin
+
+      - name: Build
+        run: cargo xwin build --workspace --release --target ${{ matrix.target }}
+
+      - name: Package artifacts
+        run: |
+          mkdir -p dist
+
+          # Package cyberpunk mod
+          if [ -f "target/${{ matrix.target }}/release/ctd_cyberpunk.dll" ]; then
+            mkdir -p dist/ctd-cyberpunk/red4ext/plugins/ctd-cyberpunk
+            cp "target/${{ matrix.target }}/release/ctd_cyberpunk.dll" \
+               dist/ctd-cyberpunk/red4ext/plugins/ctd-cyberpunk/
+            cd dist && zip -r "ctd-cyberpunk-${{ github.ref_name }}-${{ matrix.target }}.zip" ctd-cyberpunk && cd ..
+          fi
+
+          # Future mods can be added here with their specific directory structures
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

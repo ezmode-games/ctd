@@ -19,28 +19,24 @@ CTD captures crash context from modded games and makes it easy to share with mod
 ## Supported Games
 
 **Phase 1 (MVP)**
-- Skyrim Special Edition (SKSE64)
+- Cyberpunk 2077 (RED4ext) - Pure Rust
 
 **Phase 2**
+- Skyrim Special Edition (SKSE64)
 - Fallout 4 (F4SE)
-- Fallout New Vegas (NVSE)
-- Fallout 3 (FOSE)
-- Oblivion (OBSE)
-- Morrowind (MWSE)
 
 **Phase 3**
 - Baldur's Gate 3
-- Cyberpunk 2077
 - Stardew Valley
 
 ## Repository Structure
 
 ```
 ctd/
-├── crates/
-│   ├── ctd-core/       # Rust library - crash capture, load order parsing
-│   ├── ctd-skse64/     # SKSE64 plugin for Skyrim SE
-│   └── ctd-app/        # System tray application
+├── lib/                # Shared Rust libraries
+│   └── ctd-core/       # Core types, API client, crash report builder
+├── mods/               # Game-specific mods
+│   └── cyberpunk/      # RED4ext plugin for Cyberpunk 2077
 ├── api/                # Hono API (TypeScript)
 │   ├── src/
 │   │   ├── index.ts
@@ -49,6 +45,7 @@ ctd/
 │   │   └── lib/
 │   ├── package.json
 │   └── drizzle.config.ts
+├── Cargo.toml          # Rust workspace root
 └── README.md
 ```
 
