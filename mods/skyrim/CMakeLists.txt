@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.28)
 
 # Project configuration
 project(
@@ -59,10 +59,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(rapidcsv)
 
 # CommonLibSSE-NG
+# Use EXCLUDE_FROM_ALL to avoid install/export issues with FetchContent dependencies
 FetchContent_Declare(
     CommonLibSSE
     GIT_REPOSITORY https://github.com/CharmedBaryon/CommonLibSSE-NG.git
     GIT_TAG v3.6.0
+    EXCLUDE_FROM_ALL
 )
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_SE ON CACHE BOOL "" FORCE)
