@@ -119,7 +119,8 @@ target_link_libraries(${PLUGIN_TARGET} PRIVATE
 )
 
 # Ensure Rust library builds first (generates CXX bridge headers)
-add_dependencies(${PLUGIN_TARGET} cargo-build_ctd-skyrim)
+# Note: target_link_libraries should handle this, but be explicit
+add_dependencies(${PLUGIN_TARGET} ctd-skyrim)
 
 # Precompiled headers (optional but speeds up builds)
 target_precompile_headers(${PLUGIN_TARGET} PRIVATE
