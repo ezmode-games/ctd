@@ -29,9 +29,7 @@ pub mod mod_scanner;
 pub mod report;
 
 #[cfg(windows)]
-use red4ext_rs::{
-    Exportable, Plugin, SemVer, U16CStr, export_plugin_symbols, exports, wcstr,
-};
+use red4ext_rs::{Exportable, Plugin, SemVer, U16CStr, export_plugin_symbols, exports, wcstr};
 
 #[cfg(windows)]
 use tracing::{error, info};
