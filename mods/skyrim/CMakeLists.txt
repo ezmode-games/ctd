@@ -118,6 +118,9 @@ target_link_libraries(${PLUGIN_TARGET} PRIVATE
     DbgHelp
 )
 
+# Ensure Rust library builds first (generates CXX bridge headers)
+add_dependencies(${PLUGIN_TARGET} cargo-build_ctd-skyrim)
+
 # Precompiled headers (optional but speeds up builds)
 target_precompile_headers(${PLUGIN_TARGET} PRIVATE
     <RE/Skyrim.h>
