@@ -118,13 +118,18 @@ target_link_libraries(${PLUGIN_TARGET} PRIVATE
     DbgHelp
 )
 
-# Note: target_link_libraries to ctd-skyrim handles build order
+# Ensure Rust builds before C++ (needed for CXX bridge headers)
+# Corrosion creates a custom target for the cargo build
+get_target_property(RUST_BUILD_TARGET ctd-skyrim INTERFACE_LINK_LIBRARIES)
+if(TARGET _cargo-build_ctd-skyrim)
+    add_dependencies(${PLUGIN_TARGET} _cargo-build_ctd-skyrim)
+endif()
 
-# Precompiled headers (optional but speeds up builds)
-target_precompile_headers(${PLUGIN_TARGET} PRIVATE
-    <RE/Skyrim.h>
-    <SKSE/SKSE.h>
-)
+# Precompiled headers disabled for now - causes build order issues with CXX bridge
+# target_precompile_headers(${PLUGIN_TARGET} PRIVATE
+#     <RE/Skyrim.h>
+#     <SKSE/SKSE.h>
+# )
 
 # ============================================================================
 # Output Configuration
