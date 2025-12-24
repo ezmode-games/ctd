@@ -69,11 +69,6 @@ FetchContent_MakeAvailable(CommonLibSSE)
 # Import the Rust static library
 corrosion_import_crate(MANIFEST_PATH Cargo.toml)
 
-# Set Rust flags
-corrosion_set_env_vars(ctd-skyrim
-    "CXXBRIDGE_DIR=${CMAKE_CURRENT_BINARY_DIR}/cxxbridge"
-)
-
 # ============================================================================
 # C++ Plugin
 # ============================================================================
@@ -90,8 +85,9 @@ add_library(${PROJECT_NAME} SHARED
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge
-    ${CMAKE_CURRENT_BINARY_DIR}/cargo/build/x86_64-pc-windows-msvc/cxxbridge
+    # CXX bridge output locations
+    ${CMAKE_BINARY_DIR}/cargo/build/x86_64-pc-windows-msvc/cxxbridge
+    ${CMAKE_CURRENT_BINARY_DIR}/corrosion_generated/cxxbridge/ctd-skyrim
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
