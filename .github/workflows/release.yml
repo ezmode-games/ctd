@@ -15,44 +15,30 @@ env:
 jobs:
   build-release:
     name: Build Release
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [x86_64-pc-windows-msvc]
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Install build dependencies
-        run: |
-          cargo install cargo-xwin
-          sudo apt-get update && sudo apt-get install -y clang llvm cmake ninja-build
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
-        with:
-          cache-directories: ~/.cache/cargo-xwin
 
       - name: Build
-        run: cargo xwin build --workspace --release --target ${{ matrix.target }}
+        run: cargo build --workspace --release
 
       - name: Package artifacts
+        shell: pwsh
         run: |
-          mkdir -p dist
+          New-Item -ItemType Directory -Force -Path dist
 
           # Package cyberpunk mod
-          if [ -f "target/${{ matrix.target }}/release/ctd_cyberpunk.dll" ]; then
-            mkdir -p dist/ctd-cyberpunk/red4ext/plugins/ctd-cyberpunk
-            cp "target/${{ matrix.target }}/release/ctd_cyberpunk.dll" \
-               dist/ctd-cyberpunk/red4ext/plugins/ctd-cyberpunk/
-            cd dist && zip -r "ctd-cyberpunk-${{ github.ref_name }}-${{ matrix.target }}.zip" ctd-cyberpunk && cd ..
-          fi
-
-          # Future mods can be added here with their specific directory structures
+          if (Test-Path "target/release/ctd_cyberpunk.dll") {
+            New-Item -ItemType Directory -Force -Path "dist/ctd-cyberpunk/red4ext/plugins/ctd-cyberpunk"
+            Copy-Item "target/release/ctd_cyberpunk.dll" "dist/ctd-cyberpunk/red4ext/plugins/ctd-cyberpunk/"
+            Compress-Archive -Path "dist/ctd-cyberpunk/*" -DestinationPath "dist/ctd-cyberpunk-${{ github.ref_name }}.zip"
+          }
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2

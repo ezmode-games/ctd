@@ -46,33 +46,24 @@ jobs:
 
   build-windows:
     name: Build Windows
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
-
-      - name: Install build dependencies
-        run: |
-          cargo install cargo-xwin
-          sudo apt-get update && sudo apt-get install -y clang llvm cmake ninja-build
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
-        with:
-          cache-directories: ~/.cache/cargo-xwin
 
       - name: Build
-        run: cargo xwin build --workspace --release --target x86_64-pc-windows-msvc
+        run: cargo build --workspace --release
 
       - name: Upload DLLs
         uses: actions/upload-artifact@v4
         with:
           name: windows-dlls
-          path: target/x86_64-pc-windows-msvc/release/*.dll
+          path: target/release/*.dll
           if-no-files-found: warn
 
   ci-success:
