@@ -2,11 +2,9 @@
   "name": "ctd-skyrim",
   "version-string": "0.1.0",
   "description": "SKSE64 crash reporter plugin",
+  "builtin-baseline": "c82f74667287d3dc386bce81e44964370c91a289",
   "dependencies": [
-    {
-      "name": "commonlibsse-ng",
-      "version>=": "3.6.0"
-    },
+    "commonlibsse-ng",
     "spdlog"
   ],
   "overrides": [
