@@ -306,7 +306,7 @@ fn get_module_at_address(address: u64) -> Option<String> {
     // Get module filename
     let mut filename = [0u16; 260];
     // SAFETY: GetModuleFileNameW is safe with valid buffer
-    let len = unsafe { GetModuleFileNameW(Some(module), &mut filename) };
+    let len = unsafe { GetModuleFileNameW(module, &mut filename) };
 
     if len == 0 {
         return None;
