@@ -29,12 +29,30 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Corrosion)
 
+# fmt (required by CommonLibSSE-NG)
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG 10.2.1
+)
+FetchContent_MakeAvailable(fmt)
+
+# spdlog (required by CommonLibSSE-NG)
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.14.1
+)
+set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(spdlog)
+
 # CommonLibSSE-NG
 FetchContent_Declare(
     CommonLibSSE
     GIT_REPOSITORY https://github.com/CharmedBaryon/CommonLibSSE-NG.git
     GIT_TAG v3.6.0
 )
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(CommonLibSSE)
 
 # ============================================================================
