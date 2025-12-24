@@ -31,10 +31,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Corrosion)
 
 # fmt (required by CommonLibSSE-NG)
+# Use OVERRIDE_FIND_PACKAGE to satisfy find_package(fmt) calls
 FetchContent_Declare(
     fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
     GIT_TAG 10.2.1
+    OVERRIDE_FIND_PACKAGE
 )
 FetchContent_MakeAvailable(fmt)
 
@@ -43,6 +45,7 @@ FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG v1.14.1
+    OVERRIDE_FIND_PACKAGE
 )
 set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(spdlog)
@@ -54,6 +57,9 @@ FetchContent_Declare(
     GIT_TAG v3.6.0
 )
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ENABLE_SKYRIM_SE ON CACHE BOOL "" FORCE)
+set(ENABLE_SKYRIM_AE ON CACHE BOOL "" FORCE)
+set(ENABLE_SKYRIM_VR OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(CommonLibSSE)
 
 # ============================================================================
