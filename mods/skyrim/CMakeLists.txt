@@ -108,6 +108,8 @@ target_include_directories(${PLUGIN_TARGET} PRIVATE
     # CXX bridge output locations
     ${CMAKE_BINARY_DIR}/cargo/build/x86_64-pc-windows-msvc/cxxbridge
     ${CMAKE_CURRENT_BINARY_DIR}/corrosion_generated/cxxbridge/ctd-skyrim
+    # rapidcsv (needed for CommonLibSSE headers)
+    ${rapidcsv_SOURCE_DIR}/src
 )
 
 target_link_libraries(${PLUGIN_TARGET} PRIVATE
