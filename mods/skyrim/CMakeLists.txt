@@ -50,6 +50,14 @@ FetchContent_Declare(
 set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(spdlog)
 
+# rapidcsv (required by CommonLibSSE-NG)
+FetchContent_Declare(
+    rapidcsv
+    GIT_REPOSITORY https://github.com/d99kris/rapidcsv.git
+    GIT_TAG v8.83
+)
+FetchContent_MakeAvailable(rapidcsv)
+
 # CommonLibSSE-NG
 FetchContent_Declare(
     CommonLibSSE
@@ -60,6 +68,7 @@ set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_SE ON CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_AE ON CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_VR OFF CACHE BOOL "" FORCE)
+set(RAPIDCSV_INCLUDE_DIRS ${rapidcsv_SOURCE_DIR}/src CACHE PATH "" FORCE)
 FetchContent_MakeAvailable(CommonLibSSE)
 
 # ============================================================================
@@ -78,26 +87,27 @@ file(GLOB_RECURSE CPP_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/cpp/*.cpp"
 )
 
-# Create the SKSE plugin DLL
-add_library(${PROJECT_NAME} SHARED
+# Create the SKSE plugin DLL (use different name to avoid collision with Rust lib)
+set(PLUGIN_TARGET ctd-skyrim-plugin)
+add_library(${PLUGIN_TARGET} SHARED
     ${CPP_SOURCES}
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(${PLUGIN_TARGET} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     # CXX bridge output locations
     ${CMAKE_BINARY_DIR}/cargo/build/x86_64-pc-windows-msvc/cxxbridge
     ${CMAKE_CURRENT_BINARY_DIR}/corrosion_generated/cxxbridge/ctd-skyrim
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${PLUGIN_TARGET} PRIVATE
     CommonLibSSE
     ctd-skyrim
     DbgHelp
 )
 
 # Precompiled headers (optional but speeds up builds)
-target_precompile_headers(${PROJECT_NAME} PRIVATE
+target_precompile_headers(${PLUGIN_TARGET} PRIVATE
     <RE/Skyrim.h>
     <SKSE/SKSE.h>
 )
@@ -107,12 +117,12 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE
 # ============================================================================
 
 # Output to a convenient location
-set_target_properties(${PROJECT_NAME} PROPERTIES
+set_target_properties(${PLUGIN_TARGET} PROPERTIES
     OUTPUT_NAME "ctd-skyrim"
     SUFFIX ".dll"
 )
 
 # Install target for distribution
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PLUGIN_TARGET}
     RUNTIME DESTINATION "SKSE/Plugins"
 )
