@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.22)
 
 # Project configuration
 project(
@@ -59,19 +59,27 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(rapidcsv)
 
 # CommonLibSSE-NG
-# Use EXCLUDE_FROM_ALL to avoid install/export issues with FetchContent dependencies
+# Manually populate and add with EXCLUDE_FROM_ALL + SYSTEM to avoid export issues
 FetchContent_Declare(
     CommonLibSSE
     GIT_REPOSITORY https://github.com/CharmedBaryon/CommonLibSSE-NG.git
     GIT_TAG v3.6.0
-    EXCLUDE_FROM_ALL
 )
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_SE ON CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_AE ON CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_VR OFF CACHE BOOL "" FORCE)
 set(RAPIDCSV_INCLUDE_DIRS ${rapidcsv_SOURCE_DIR}/src CACHE PATH "" FORCE)
-FetchContent_MakeAvailable(CommonLibSSE)
+
+# Skip install rules for CommonLibSSE to avoid export conflicts
+FetchContent_GetProperties(CommonLibSSE)
+if(NOT commonlibsse_POPULATED)
+    FetchContent_Populate(CommonLibSSE)
+    # Disable install() commands in the subdirectory
+    set(CMAKE_SKIP_INSTALL_RULES ON)
+    add_subdirectory(${commonlibsse_SOURCE_DIR} ${commonlibsse_BINARY_DIR} EXCLUDE_FROM_ALL)
+    set(CMAKE_SKIP_INSTALL_RULES OFF)
+endif()
 
 # ============================================================================
 # Rust Library
