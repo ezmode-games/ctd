@@ -72,25 +72,16 @@ jobs:
     continue-on-error: true  # Non-blocking while we stabilize the build
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: "c82f74667287d3dc386bce81e44964370c91a289"
-
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: mods/skyrim
 
       - name: Configure CMake
         working-directory: mods/skyrim
-        run: cmake --preset vs2022
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64
 
       - name: Build
         working-directory: mods/skyrim

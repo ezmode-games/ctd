@@ -19,8 +19,9 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:Debug>")
 # Dependencies
 # ============================================================================
 
-# Corrosion for Rust/CMake integration
 include(FetchContent)
+
+# Corrosion for Rust/CMake integration
 FetchContent_Declare(
     Corrosion
     GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
@@ -29,7 +30,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Corrosion)
 
 # CommonLibSSE-NG
-find_package(CommonLibSSE CONFIG REQUIRED)
+FetchContent_Declare(
+    CommonLibSSE
+    GIT_REPOSITORY https://github.com/CharmedBaryon/CommonLibSSE-NG.git
+    GIT_TAG v3.6.0
+)
+FetchContent_MakeAvailable(CommonLibSSE)
 
 # ============================================================================
 # Rust Library
@@ -64,7 +70,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    CommonLibSSE::CommonLibSSE
+    CommonLibSSE
     ctd-skyrim
     DbgHelp
 )
