@@ -118,9 +118,7 @@ target_link_libraries(${PLUGIN_TARGET} PRIVATE
     DbgHelp
 )
 
-# Ensure Rust library builds first (generates CXX bridge headers)
-# Note: target_link_libraries should handle this, but be explicit
-add_dependencies(${PLUGIN_TARGET} ctd-skyrim)
+# Note: target_link_libraries to ctd-skyrim handles build order
 
 # Precompiled headers (optional but speeds up builds)
 target_precompile_headers(${PLUGIN_TARGET} PRIVATE
