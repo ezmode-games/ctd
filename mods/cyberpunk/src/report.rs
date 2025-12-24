@@ -207,7 +207,7 @@ fn detect_game_version_windows() -> Option<String> {
     let mut buffer = vec![0u8; size as usize];
     let result = unsafe { GetFileVersionInfoW(path_pcwstr, 0, size, buffer.as_mut_ptr().cast()) };
 
-    if !result.as_bool() {
+    if result.is_err() {
         return None;
     }
 
@@ -276,7 +276,7 @@ fn get_os_version() -> Option<String> {
     #[allow(deprecated)]
     let result = unsafe { GetVersionExW(&mut info) };
 
-    if result.as_bool() {
+    if result.is_ok() {
         Some(format!(
             "Windows {}.{}.{}",
             info.dwMajorVersion, info.dwMinorVersion, info.dwBuildNumber

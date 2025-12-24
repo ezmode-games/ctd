@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "*-v*" # Per-mod tags like "cyberpunk-v1.0.0"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-release:
+    name: Build Release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --workspace --release
+
+      - name: Package artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+
+          # Package cyberpunk mod
+          if (Test-Path "target/release/ctd_cyberpunk.dll") {
+            New-Item -ItemType Directory -Force -Path "dist/ctd-cyberpunk/red4ext/plugins/ctd-cyberpunk"
+            Copy-Item "target/release/ctd_cyberpunk.dll" "dist/ctd-cyberpunk/red4ext/plugins/ctd-cyberpunk/"
+            Compress-Archive -Path "dist/ctd-cyberpunk/*" -DestinationPath "dist/ctd-cyberpunk-${{ github.ref_name }}.zip"
+          }
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
