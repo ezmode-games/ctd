@@ -229,7 +229,7 @@ fn detect_game_version_windows() -> Option<String> {
         )
     };
 
-    if result.is_err() || info_ptr.is_null() {
+    if !result.as_bool() || info_ptr.is_null() {
         return None;
     }
 

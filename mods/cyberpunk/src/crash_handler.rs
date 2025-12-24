@@ -104,14 +104,14 @@ unsafe extern "system" fn veh_handler(
     let info: &EXCEPTION_POINTERS = unsafe { &*exception_info };
 
     let Some(record) = (unsafe { info.ExceptionRecord.as_ref() }) else {
-        return EXCEPTION_CONTINUE_SEARCH.0;
+        return EXCEPTION_CONTINUE_SEARCH;
     };
 
     let code = record.ExceptionCode.0 as u32;
 
     // Only handle fatal exceptions
     if !is_fatal_exception(code) {
-        return EXCEPTION_CONTINUE_SEARCH.0;
+        return EXCEPTION_CONTINUE_SEARCH;
     }
 
     // Capture crash data
@@ -129,7 +129,7 @@ unsafe extern "system" fn veh_handler(
     report::submit_async(crash_data);
 
     // Continue searching for other handlers (let the game/debugger handle it too)
-    EXCEPTION_CONTINUE_SEARCH.0
+    EXCEPTION_CONTINUE_SEARCH
 }
 
 /// Returns true if the exception code represents a fatal crash.
@@ -172,10 +172,6 @@ fn capture_stack_trace(
     use windows::Win32::Foundation::HANDLE;
     use windows::Win32::System::Diagnostics::Debug::{
         ADDRESS_MODE, CONTEXT, STACKFRAME64, StackWalk64,
-    };
-    use windows::Win32::System::LibraryLoader::{
-        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        GetModuleFileNameW, GetModuleHandleExW,
     };
     use windows::Win32::System::Threading::GetCurrentProcess;
 

@@ -30,7 +30,7 @@ pub mod report;
 
 #[cfg(windows)]
 use red4ext_rs::{
-    Exportable, Plugin, PluginOps, SemVer, U16CStr, export_plugin_symbols, exports, wcstr,
+    Exportable, Plugin, SemVer, U16CStr, export_plugin_symbols, exports, wcstr,
 };
 
 #[cfg(windows)]
