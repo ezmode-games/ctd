@@ -66,6 +66,15 @@ FetchContent_Declare(
 set(RH_STANDALONE_PROJECT OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(robin_hood)
 
+# srell (header-only regex library required by CommonLibF4)
+FetchContent_Declare(
+    srell
+    GIT_REPOSITORY https://github.com/ZimProjects/SRELL.git
+    GIT_TAG trunk
+)
+FetchContent_MakeAvailable(srell)
+set(srell_INCLUDE_DIR "${srell_SOURCE_DIR}" CACHE PATH "" FORCE)
+
 # CommonLibF4
 FetchContent_Declare(
     CommonLibF4
