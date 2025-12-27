@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["lib/ctd-core", "mods/cyberpunk", "mods/skyrim"]
+members = ["lib/ctd-core", "mods/cyberpunk", "mods/fallout4", "mods/skyrim"]
 
 [workspace.package]
 version = "0.1.0"
