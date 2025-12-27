@@ -83,6 +83,8 @@ FetchContent_Declare(
 )
 set(BOOST_INCLUDE_LIBRARIES stl_interfaces)
 FetchContent_MakeAvailable(Boost)
+set(Boost_INCLUDE_DIR "${boost_SOURCE_DIR}" CACHE PATH "" FORCE)
+set(Boost_FOUND TRUE CACHE BOOL "" FORCE)
 
 # CommonLibF4
 FetchContent_Declare(
