@@ -53,6 +53,8 @@ FetchContent_Declare(
     GIT_TAG main
     OVERRIDE_FIND_PACKAGE
 )
+# Disable mmio tests (requires Catch2)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(mmio)
 
 # CommonLibF4

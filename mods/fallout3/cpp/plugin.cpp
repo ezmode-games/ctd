@@ -5,6 +5,9 @@
 
 #include <cstdint>
 
+// xFOSE common types (must come before other FOSE headers)
+#include "ITypes.h"
+
 #include "fose/PluginAPI.h"
 #include "ctd-fallout3/src/lib.rs.h"  // CXX-generated Rust interface
 #include "bridge.hpp"

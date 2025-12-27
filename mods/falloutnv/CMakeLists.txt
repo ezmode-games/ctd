@@ -85,7 +85,8 @@ add_library(${PLUGIN_TARGET} SHARED
 target_include_directories(${PLUGIN_TARGET} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
-    # xNVSE headers
+    # xNVSE headers (common has type definitions)
+    ${xnvse_SOURCE_DIR}/common
     ${xnvse_SOURCE_DIR}/nvse
     ${xnvse_SOURCE_DIR}/nvse/nvse
     # CXX bridge output location

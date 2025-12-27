@@ -85,8 +85,10 @@ add_library(${PLUGIN_TARGET} SHARED
 target_include_directories(${PLUGIN_TARGET} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
-    # xFOSE headers
+    # xFOSE headers (common has type definitions)
+    ${xfose_SOURCE_DIR}/common
     ${xfose_SOURCE_DIR}/fose
+    ${xfose_SOURCE_DIR}/fose/fose
     # CXX bridge output location
     ${RUST_TARGET_DIR}/cxxbridge
     ${RUST_TARGET_DIR}/i686-pc-windows-msvc/cxxbridge
