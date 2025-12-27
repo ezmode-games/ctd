@@ -13,9 +13,29 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  discover-mods:
+    name: Discover Mods
+    runs-on: ubuntu-latest
+    outputs:
+      mods_matrix: ${{ steps.discover.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover mods with nexus.toml
+        id: discover
+        run: |
+          # Find all mods that have a nexus.toml
+          MODS=$(find mods -name "nexus.toml" -exec dirname {} \; | xargs -n1 basename | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "matrix={\"mod\":$MODS}" >> $GITHUB_OUTPUT
+          echo "Found mods: $MODS"
+
   build-release:
-    name: Build Release
+    name: Build ${{ matrix.mod }}
+    needs: discover-mods
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover-mods.outputs.mods_matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -25,89 +45,195 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      # Build Cyberpunk (pure Rust)
-      - name: Build Cyberpunk
-        run: cargo build -p ctd-cyberpunk --release
-
-      # Build Skyrim (CMake + Rust hybrid)
-      - name: Build Skyrim - Rust
-        working-directory: mods/skyrim
-        run: cargo build --release --target x86_64-pc-windows-msvc --target-dir build/rust-build
-
-      - name: Build Skyrim - CMake
-        working-directory: mods/skyrim
+      - name: Parse nexus.toml
+        id: config
+        shell: pwsh
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64
-          cmake --build build --config Release
+          $config = Get-Content "mods/${{ matrix.mod }}/nexus.toml" -Raw
+
+          # Parse build type
+          if ($config -match 'type\s*=\s*"([^"]+)"') {
+            $buildType = $matches[1]
+          } else {
+            $buildType = "cargo"
+          }
+
+          # Parse output name
+          if ($config -match 'output\s*=\s*"([^"]+)"') {
+            $output = $matches[1]
+          } else {
+            $output = "ctd-${{ matrix.mod }}"
+          }
+
+          # Parse script extender
+          if ($config -match 'script_extender\s*=\s*"([^"]+)"') {
+            $scriptExtender = $matches[1]
+          } else {
+            $scriptExtender = "Unknown"
+          }
+
+          # Parse plugin path
+          if ($config -match 'plugin_path\s*=\s*"([^"]+)"') {
+            $pluginPath = $matches[1]
+          } else {
+            $pluginPath = "plugins"
+          }
+
+          # Parse config path
+          if ($config -match 'config_path\s*=\s*"([^"]+)"') {
+            $configPath = $matches[1]
+          } else {
+            $configPath = $pluginPath
+          }
+
+          # Parse fomod destination
+          if ($config -match 'fomod_destination\s*=\s*"([^"]+)"') {
+            $fomodDest = $matches[1]
+          } else {
+            $fomodDest = $pluginPath
+          }
+
+          # Parse architecture (default x64)
+          $arch = "x64"
+          $rustTarget = "x86_64-pc-windows-msvc"
+          if ($config -match 'arch\s*=\s*"x86"') {
+            $arch = "Win32"
+            $rustTarget = "i686-pc-windows-msvc"
+          }
+
+          echo "build_type=$buildType" >> $env:GITHUB_OUTPUT
+          echo "output=$output" >> $env:GITHUB_OUTPUT
+          echo "script_extender=$scriptExtender" >> $env:GITHUB_OUTPUT
+          echo "plugin_path=$pluginPath" >> $env:GITHUB_OUTPUT
+          echo "config_path=$configPath" >> $env:GITHUB_OUTPUT
+          echo "fomod_destination=$fomodDest" >> $env:GITHUB_OUTPUT
+          echo "arch=$arch" >> $env:GITHUB_OUTPUT
+          echo "rust_target=$rustTarget" >> $env:GITHUB_OUTPUT
+
+          echo "Build type: $buildType"
+          echo "Output: $output"
+          echo "Script extender: $scriptExtender"
+          echo "Plugin path: $pluginPath"
+          echo "Architecture: $arch ($rustTarget)"
+
+      # Pure Rust build
+      - name: Build (Cargo)
+        if: steps.config.outputs.build_type == 'cargo'
+        run: cargo build -p ctd-${{ matrix.mod }} --release
+
+      # CMake hybrid build
+      - name: Build Rust (CMake project)
+        if: steps.config.outputs.build_type == 'cmake'
+        working-directory: mods/${{ matrix.mod }}
+        run: cargo build --release --target ${{ steps.config.outputs.rust_target }} --target-dir build/rust-build
+
+      - name: Configure CMake
+        if: steps.config.outputs.build_type == 'cmake'
+        working-directory: mods/${{ matrix.mod }}
+        run: cmake -B build -G "Visual Studio 17 2022" -A ${{ steps.config.outputs.arch }}
+
+      - name: Build (CMake)
+        if: steps.config.outputs.build_type == 'cmake'
+        working-directory: mods/${{ matrix.mod }}
+        run: cmake --build build --config Release
 
       # Package for Nexus
-      - name: Package Cyberpunk
+      - name: Package for Nexus
         shell: pwsh
         run: |
+          $mod = "${{ matrix.mod }}"
           $version = "${{ github.ref_name }}"
-          New-Item -ItemType Directory -Force -Path dist
+          $buildType = "${{ steps.config.outputs.build_type }}"
+          $output = "${{ steps.config.outputs.output }}"
+          $scriptExtender = "${{ steps.config.outputs.script_extender }}"
+          $pluginPath = "${{ steps.config.outputs.plugin_path }}"
+          $configPath = "${{ steps.config.outputs.config_path }}"
+          $fomodDest = "${{ steps.config.outputs.fomod_destination }}"
 
-          if (Test-Path "target/release/ctd_cyberpunk.dll") {
-            $cyberpunkDir = "dist/cyberpunk-nexus"
-
-            New-Item -ItemType Directory -Force -Path "$cyberpunkDir/red4ext/plugins/ctd-cyberpunk"
-            Copy-Item "target/release/ctd_cyberpunk.dll" "$cyberpunkDir/red4ext/plugins/ctd-cyberpunk/"
-
-            # Config file
-            $configContent = "# CTD (Crash to Desktop Reporter) Configuration`n"
-            $configContent += "[api]`n"
-            $configContent += "url = `"https://ctd.ezmode.games`"`n"
-            $configContent += "crashes_path = `"/crashes`"`n"
-            $configContent += "timeout_secs = 30`n"
-            Set-Content -Path "$cyberpunkDir/red4ext/plugins/ctd-cyberpunk/ctd.toml" -Value $configContent -Encoding UTF8
-
-            # FOMOD
-            New-Item -ItemType Directory -Force -Path "$cyberpunkDir/fomod"
-            $infoXml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`n<fomod>`n  <Name>CTD - Crash to Desktop Reporter</Name>`n  <Author>ezmode.games</Author>`n  <Version>$version</Version>`n  <Website>https://github.com/ezmode-games/ctd</Website>`n</fomod>"
-            Set-Content -Path "$cyberpunkDir/fomod/info.xml" -Value $infoXml -Encoding UTF8
-
-            $moduleXml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`n<config xmlns:xsi=`"http://www.w3.org/2001/XMLSchema-instance`"><moduleName>CTD</moduleName><requiredInstallFiles><folder source=`"red4ext`" destination=`"red4ext`"/></requiredInstallFiles></config>"
-            Set-Content -Path "$cyberpunkDir/fomod/ModuleConfig.xml" -Value $moduleXml -Encoding UTF8
-
-            Set-Content -Path "$cyberpunkDir/README.txt" -Value "CTD - Crash to Desktop Reporter`nRequires RED4ext`nhttps://github.com/ezmode-games/ctd" -Encoding UTF8
-
-            Compress-Archive -Path "$cyberpunkDir/*" -DestinationPath "dist/CTD-Cyberpunk-$version.zip"
+          # Determine DLL location based on build type
+          if ($buildType -eq "cargo") {
+            $dllPath = "target/release/${output}.dll"
+          } else {
+            $dllPath = "mods/$mod/build/Release/${output}.dll"
           }
 
-      - name: Package Skyrim
-        shell: pwsh
-        run: |
-          $version = "${{ github.ref_name }}"
-
-          if (Test-Path "mods/skyrim/build/Release/ctd-skyrim.dll") {
-            $skyrimDir = "dist/skyrim-nexus"
-
-            New-Item -ItemType Directory -Force -Path "$skyrimDir/SKSE/Plugins"
-            Copy-Item "mods/skyrim/build/Release/ctd-skyrim.dll" "$skyrimDir/SKSE/Plugins/"
-
-            # Config file
-            $configContent = "# CTD (Crash to Desktop Reporter) Configuration`n"
-            $configContent += "[api]`n"
-            $configContent += "url = `"https://ctd.ezmode.games`"`n"
-            $configContent += "crashes_path = `"/crashes`"`n"
-            $configContent += "timeout_secs = 30`n"
-            Set-Content -Path "$skyrimDir/SKSE/Plugins/ctd.toml" -Value $configContent -Encoding UTF8
-
-            # FOMOD
-            New-Item -ItemType Directory -Force -Path "$skyrimDir/fomod"
-            $infoXml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`n<fomod>`n  <Name>CTD - Crash to Desktop Reporter</Name>`n  <Author>ezmode.games</Author>`n  <Version>$version</Version>`n  <Website>https://github.com/ezmode-games/ctd</Website>`n</fomod>"
-            Set-Content -Path "$skyrimDir/fomod/info.xml" -Value $infoXml -Encoding UTF8
-
-            $moduleXml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`n<config xmlns:xsi=`"http://www.w3.org/2001/XMLSchema-instance`"><moduleName>CTD</moduleName><requiredInstallFiles><folder source=`"SKSE`" destination=`"SKSE`"/></requiredInstallFiles></config>"
-            Set-Content -Path "$skyrimDir/fomod/ModuleConfig.xml" -Value $moduleXml -Encoding UTF8
-
-            Set-Content -Path "$skyrimDir/README.txt" -Value "CTD - Crash to Desktop Reporter`nRequires SKSE64`nhttps://github.com/ezmode-games/ctd" -Encoding UTF8
-
-            Compress-Archive -Path "$skyrimDir/*" -DestinationPath "dist/CTD-Skyrim-$version.zip"
+          if (-not (Test-Path $dllPath)) {
+            Write-Host "DLL not found at $dllPath, skipping package"
+            exit 0
           }
+
+          $distDir = "dist/$mod-nexus"
+          New-Item -ItemType Directory -Force -Path "dist"
+          New-Item -ItemType Directory -Force -Path "$distDir/$pluginPath"
+
+          # Copy DLL
+          Copy-Item $dllPath "$distDir/$pluginPath/"
+
+          # Create config file
+          $configContent = "# CTD (Crash to Desktop Reporter) Configuration`n"
+          $configContent += "[api]`n"
+          $configContent += "url = `"https://ctd.ezmode.games`"`n"
+          $configContent += "crashes_path = `"/crashes`"`n"
+          $configContent += "timeout_secs = 30`n"
+          Set-Content -Path "$distDir/$configPath/ctd.toml" -Value $configContent -Encoding UTF8
+
+          # Create FOMOD
+          New-Item -ItemType Directory -Force -Path "$distDir/fomod"
+
+          $infoXml = @"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <fomod>
+            <Name>CTD - Crash to Desktop Reporter</Name>
+            <Author>ezmode.games</Author>
+            <Version>$version</Version>
+            <Website>https://github.com/ezmode-games/ctd</Website>
+          </fomod>
+          "@
+          Set-Content -Path "$distDir/fomod/info.xml" -Value $infoXml.Trim() -Encoding UTF8
+
+          # Get the root folder name for FOMOD source
+          $rootFolder = $pluginPath.Split("/")[0]
+          $moduleXml = @"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <moduleName>CTD</moduleName>
+            <requiredInstallFiles>
+              <folder source="$rootFolder" destination="$fomodDest"/>
+            </requiredInstallFiles>
+          </config>
+          "@
+          Set-Content -Path "$distDir/fomod/ModuleConfig.xml" -Value $moduleXml.Trim() -Encoding UTF8
+
+          # Create README
+          $readme = "CTD - Crash to Desktop Reporter`nRequires $scriptExtender`nhttps://github.com/ezmode-games/ctd"
+          Set-Content -Path "$distDir/README.txt" -Value $readme -Encoding UTF8
+
+          # Create archive
+          $modTitle = (Get-Culture).TextInfo.ToTitleCase($mod)
+          Compress-Archive -Path "$distDir/*" -DestinationPath "dist/CTD-$modTitle-$version.zip"
+          Write-Host "Created dist/CTD-$modTitle-$version.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.mod }}-release
+          path: dist/*.zip
+          if-no-files-found: warn
+
+  create-release:
+    name: Create Release
+    needs: build-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: "*-release"
+          merge-multiple: true
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.zip
+          files: artifacts/*.zip
           generate_release_notes: true

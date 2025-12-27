@@ -1,0 +1,22 @@
+# CTD Nexus Packaging Configuration
+# This file defines how to package the mod for Nexus Mods
+
+[mod]
+name = "CTD - Crash to Desktop Reporter"
+author = "ezmode.games"
+
+[build]
+# Pure Rust build (no CMake)
+type = "cargo"
+# Output DLL name (without .dll extension)
+output = "ctd_cyberpunk"
+
+[package]
+# Script extender this mod uses
+script_extender = "RED4ext"
+# Plugin directory structure within the archive
+plugin_path = "red4ext/plugins/ctd-cyberpunk"
+# Where to put config file
+config_path = "red4ext/plugins/ctd-cyberpunk"
+# FOMOD destination (where the plugin_path folder should be installed)
+fomod_destination = "red4ext"
