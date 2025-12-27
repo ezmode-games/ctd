@@ -9,8 +9,64 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      core: ${{ steps.filter.outputs.core }}
+      mods: ${{ steps.mods.outputs.changed }}
+      mods_matrix: ${{ steps.mods.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - '**/*.rs'
+              - '**/Cargo.toml'
+              - 'Cargo.lock'
+            core:
+              - 'lib/ctd-core/**'
+
+      - name: Detect changed mods
+        id: mods
+        run: |
+          # Get all mod directories
+          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          # Get changed files in this PR/push
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            CHANGED=$(gh pr diff ${{ github.event.pull_request.number }} --name-only 2>/dev/null || echo "")
+          else
+            CHANGED=$(git diff --name-only HEAD~1 2>/dev/null || echo "")
+          fi
+
+          # Find which mods have changes (or if core changed, all mods need rebuild)
+          CHANGED_MODS="[]"
+          if [[ "${{ steps.filter.outputs.core }}" == "true" ]]; then
+            # Core changed, rebuild all mods
+            CHANGED_MODS="$ALL_MODS"
+          else
+            # Check each mod directory
+            for mod in $(echo "$ALL_MODS" | jq -r '.[]'); do
+              if echo "$CHANGED" | grep -q "^mods/$mod/"; then
+                CHANGED_MODS=$(echo "$CHANGED_MODS" | jq -c ". + [\"$mod\"]")
+              fi
+            done
+          fi
+
+          echo "changed=$(echo $CHANGED_MODS | jq -c 'length > 0')" >> $GITHUB_OUTPUT
+          echo "matrix={\"mod\":$CHANGED_MODS}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   lint:
     name: Lint
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +87,8 @@ jobs:
 
   test:
     name: Test
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,9 +102,14 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
-  build-windows:
-    name: Build Windows
+  build-mods:
+    name: Build ${{ matrix.mod }}
+    needs: changes
+    if: needs.changes.outputs.mods == 'true'
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.changes.outputs.mods_matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -56,54 +119,68 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Build
-        run: cargo build --workspace --release
+      - name: Check for CMakeLists.txt
+        id: check-cmake
+        shell: bash
+        run: |
+          if [[ -f "mods/${{ matrix.mod }}/CMakeLists.txt" ]]; then
+            echo "has_cmake=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_cmake=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Upload DLLs
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-dlls
-          path: target/release/*.dll
-          if-no-files-found: warn
+      # Pure Rust build
+      - name: Build (Cargo)
+        if: steps.check-cmake.outputs.has_cmake == 'false'
+        run: cargo build -p ctd-${{ matrix.mod }} --release
 
-  build-skyrim-cmake:
-    name: Build Skyrim (CMake)
-    runs-on: windows-latest
-    continue-on-error: true  # Non-blocking while we stabilize the build
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
+      # CMake hybrid build
+      - name: Build Rust (CMake project)
+        if: steps.check-cmake.outputs.has_cmake == 'true'
+        working-directory: mods/${{ matrix.mod }}
+        run: cargo build --release --target x86_64-pc-windows-msvc --target-dir build/rust-build
 
       - name: Configure CMake
-        working-directory: mods/skyrim
+        if: steps.check-cmake.outputs.has_cmake == 'true'
+        working-directory: mods/${{ matrix.mod }}
         run: cmake -B build -G "Visual Studio 17 2022" -A x64
 
-      - name: Build
-        working-directory: mods/skyrim
+      - name: Build (CMake)
+        if: steps.check-cmake.outputs.has_cmake == 'true'
+        working-directory: mods/${{ matrix.mod }}
         run: cmake --build build --config Release
 
-      - name: Upload Skyrim DLL
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: skyrim-skse-plugin
-          path: mods/skyrim/build/Release/*.dll
+          name: ${{ matrix.mod }}-plugin
+          path: |
+            target/release/*.dll
+            mods/${{ matrix.mod }}/build/Release/*.dll
           if-no-files-found: warn
 
   ci-success:
     name: CI Success
-    needs: [lint, test, build-windows]
+    needs: [changes, lint, test, build-mods]
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Check all jobs passed
+      - name: Check all required jobs passed
         run: |
-          if [[ "${{ needs.lint.result }}" != "success" ]] || \
-             [[ "${{ needs.test.result }}" != "success" ]] || \
-             [[ "${{ needs.build-windows.result }}" != "success" ]]; then
+          # Lint and test must pass if they ran
+          if [[ "${{ needs.changes.outputs.rust }}" == "true" ]]; then
+            if [[ "${{ needs.lint.result }}" != "success" ]] || \
+               [[ "${{ needs.test.result }}" != "success" ]]; then
+              echo "Lint or test failed"
+              exit 1
+            fi
+          fi
+
+          # Build must pass if it ran
+          if [[ "${{ needs.changes.outputs.mods }}" == "true" ]] && \
+             [[ "${{ needs.build-mods.result }}" != "success" ]]; then
+            echo "Mod builds failed"
             exit 1
           fi
+
+          echo "All required checks passed!"
