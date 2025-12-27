@@ -75,6 +75,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(srell)
 set(srell_INCLUDE_DIR "${srell_SOURCE_DIR}" CACHE PATH "" FORCE)
 
+# Boost (header-only, required by CommonLibF4)
+FetchContent_Declare(
+    Boost
+    URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0-cmake.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+set(BOOST_INCLUDE_LIBRARIES stl_interfaces)
+FetchContent_MakeAvailable(Boost)
+
 # CommonLibF4
 FetchContent_Declare(
     CommonLibF4
