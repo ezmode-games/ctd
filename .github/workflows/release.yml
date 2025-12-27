@@ -93,17 +93,28 @@ jobs:
             $fomodDest = $pluginPath
           }
 
+          # Parse architecture (default x64)
+          $arch = "x64"
+          $rustTarget = "x86_64-pc-windows-msvc"
+          if ($config -match 'arch\s*=\s*"x86"') {
+            $arch = "Win32"
+            $rustTarget = "i686-pc-windows-msvc"
+          }
+
           echo "build_type=$buildType" >> $env:GITHUB_OUTPUT
           echo "output=$output" >> $env:GITHUB_OUTPUT
           echo "script_extender=$scriptExtender" >> $env:GITHUB_OUTPUT
           echo "plugin_path=$pluginPath" >> $env:GITHUB_OUTPUT
           echo "config_path=$configPath" >> $env:GITHUB_OUTPUT
           echo "fomod_destination=$fomodDest" >> $env:GITHUB_OUTPUT
+          echo "arch=$arch" >> $env:GITHUB_OUTPUT
+          echo "rust_target=$rustTarget" >> $env:GITHUB_OUTPUT
 
           echo "Build type: $buildType"
           echo "Output: $output"
           echo "Script extender: $scriptExtender"
           echo "Plugin path: $pluginPath"
+          echo "Architecture: $arch ($rustTarget)"
 
       # Pure Rust build
       - name: Build (Cargo)
@@ -114,12 +125,12 @@ jobs:
       - name: Build Rust (CMake project)
         if: steps.config.outputs.build_type == 'cmake'
         working-directory: mods/${{ matrix.mod }}
-        run: cargo build --release --target x86_64-pc-windows-msvc --target-dir build/rust-build
+        run: cargo build --release --target ${{ steps.config.outputs.rust_target }} --target-dir build/rust-build
 
       - name: Configure CMake
         if: steps.config.outputs.build_type == 'cmake'
         working-directory: mods/${{ matrix.mod }}
-        run: cmake -B build -G "Visual Studio 17 2022" -A x64
+        run: cmake -B build -G "Visual Studio 17 2022" -A ${{ steps.config.outputs.arch }}
 
       - name: Build (CMake)
         if: steps.config.outputs.build_type == 'cmake'
