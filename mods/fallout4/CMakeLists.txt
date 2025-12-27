@@ -104,6 +104,25 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(frozen)
 
+# nowide (UTF-8 support, required by CommonLibF4)
+FetchContent_Declare(
+    nowide
+    GIT_REPOSITORY https://github.com/boostorg/nowide.git
+    GIT_TAG master
+    OVERRIDE_FIND_PACKAGE
+)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(nowide)
+
+# xbyak (JIT assembler, required by CommonLibF4)
+FetchContent_Declare(
+    xbyak
+    GIT_REPOSITORY https://github.com/herumi/xbyak.git
+    GIT_TAG master
+    OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(xbyak)
+
 # CommonLibF4
 FetchContent_Declare(
     CommonLibF4
