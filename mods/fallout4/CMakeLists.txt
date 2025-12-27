@@ -86,6 +86,15 @@ FetchContent_MakeAvailable(Boost)
 set(Boost_INCLUDE_DIR "${boost_SOURCE_DIR}" CACHE PATH "" FORCE)
 set(Boost_FOUND TRUE CACHE BOOL "" FORCE)
 
+# args (argument parser, required by CommonLibF4)
+FetchContent_Declare(
+    args
+    GIT_REPOSITORY https://github.com/Taywee/args.git
+    GIT_TAG master
+    OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(args)
+
 # CommonLibF4
 FetchContent_Declare(
     CommonLibF4
