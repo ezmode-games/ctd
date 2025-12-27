@@ -3,10 +3,15 @@
 // This is the C++ layer that handles FOSE registration and VEH setup.
 // The actual crash processing is done in Rust.
 
+// Standard library headers (required by xFOSE headers)
 #include <cstdint>
+#include <string>
+#include <vector>
+#include <unordered_map>
 
 // xFOSE common types (must come before other FOSE headers)
 #include "common/ITypes.h"
+#include "fose/fose_version.h"
 
 #include "fose/PluginAPI.h"
 #include "ctd-fallout3/src/lib.rs.h"  // CXX-generated Rust interface

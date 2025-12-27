@@ -3,10 +3,15 @@
 // This is the C++ layer that handles NVSE registration and VEH setup.
 // The actual crash processing is done in Rust.
 
+// Standard library headers (required by xNVSE headers)
 #include <cstdint>
+#include <string>
+#include <vector>
+#include <unordered_map>
 
 // xNVSE common types (must come before other NVSE headers)
 #include "common/ITypes.h"
+#include "nvse/nvse_version.h"
 
 #include "PluginAPI.h"
 #include "ctd-falloutnv/src/lib.rs.h"  // CXX-generated Rust interface
