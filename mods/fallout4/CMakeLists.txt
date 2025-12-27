@@ -80,6 +80,15 @@ endif()
 # Set the include path for find_package(srell) to work
 set(srell_INCLUDE_DIR "${srell_SOURCE_DIR}" CACHE PATH "" FORCE)
 
+# Boost (header-only, required by CommonLibF4)
+FetchContent_Declare(
+    Boost
+    URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0-cmake.tar.gz
+    URL_HASH SHA256=47e5b7a808be56abe78f74df8a84d99001ed8c8098d4ab45c9c86cb33563aaeb
+)
+set(BOOST_INCLUDE_LIBRARIES stl_interfaces)
+FetchContent_MakeAvailable(Boost)
+
 # CommonLibF4
 FetchContent_Declare(
     CommonLibF4

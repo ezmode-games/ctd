@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<fomod>
-    <Name>CTD - Crash to Desktop Reporter</Name>
-    <Author>ezmode.games</Author>
-    <Version>0.1.0</Version>
-    <Website>https://github.com/ezmode-games/ctd</Website>
-    <Description>Automatically captures crash information and submits it to a crash reporting service. Helps identify which mod is breaking your game.</Description>
-</fomod>
