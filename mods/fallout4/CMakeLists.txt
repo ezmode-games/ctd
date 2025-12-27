@@ -95,6 +95,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(args)
 
+# frozen (compile-time containers, required by CommonLibF4)
+FetchContent_Declare(
+    frozen
+    GIT_REPOSITORY https://github.com/serge-sans-paille/frozen.git
+    GIT_TAG master
+    OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(frozen)
+
 # CommonLibF4
 FetchContent_Declare(
     CommonLibF4
