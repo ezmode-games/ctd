@@ -1,0 +1,22 @@
+# CTD Nexus Packaging Configuration
+# This file defines how to package the mod for Nexus Mods
+
+[mod]
+name = "CTD - Crash to Desktop Reporter"
+author = "ezmode.games"
+
+[build]
+# CMake + Rust hybrid build
+type = "cmake"
+# Output DLL name (without .dll extension)
+output = "ctd-fallout4"
+
+[package]
+# Script extender this mod uses
+script_extender = "F4SE"
+# Plugin directory structure within the archive
+plugin_path = "F4SE/Plugins"
+# Where to put config file
+config_path = "F4SE/Plugins"
+# FOMOD destination (where the plugin_path folder should be installed)
+fomod_destination = "Data/F4SE"

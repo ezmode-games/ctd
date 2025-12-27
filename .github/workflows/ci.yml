@@ -119,34 +119,49 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Check for CMakeLists.txt
-        id: check-cmake
-        shell: bash
+      - name: Parse build config
+        id: config
+        shell: pwsh
         run: |
-          if [[ -f "mods/${{ matrix.mod }}/CMakeLists.txt" ]]; then
-            echo "has_cmake=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_cmake=false" >> $GITHUB_OUTPUT
-          fi
+          $hasCmake = Test-Path "mods/${{ matrix.mod }}/CMakeLists.txt"
+          echo "has_cmake=$hasCmake" >> $env:GITHUB_OUTPUT
+
+          # Default to x64
+          $arch = "x64"
+          $rustTarget = "x86_64-pc-windows-msvc"
+
+          # Check nexus.toml for architecture
+          $nexusToml = "mods/${{ matrix.mod }}/nexus.toml"
+          if (Test-Path $nexusToml) {
+            $content = Get-Content $nexusToml -Raw
+            if ($content -match 'arch\s*=\s*"x86"') {
+              $arch = "Win32"
+              $rustTarget = "i686-pc-windows-msvc"
+            }
+          }
+
+          echo "arch=$arch" >> $env:GITHUB_OUTPUT
+          echo "rust_target=$rustTarget" >> $env:GITHUB_OUTPUT
+          echo "Build config: cmake=$hasCmake, arch=$arch, target=$rustTarget"
 
       # Pure Rust build
       - name: Build (Cargo)
-        if: steps.check-cmake.outputs.has_cmake == 'false'
+        if: steps.config.outputs.has_cmake == 'False'
         run: cargo build -p ctd-${{ matrix.mod }} --release
 
       # CMake hybrid build
       - name: Build Rust (CMake project)
-        if: steps.check-cmake.outputs.has_cmake == 'true'
+        if: steps.config.outputs.has_cmake == 'True'
         working-directory: mods/${{ matrix.mod }}
-        run: cargo build --release --target x86_64-pc-windows-msvc --target-dir build/rust-build
+        run: cargo build --release --target ${{ steps.config.outputs.rust_target }} --target-dir build/rust-build
 
       - name: Configure CMake
-        if: steps.check-cmake.outputs.has_cmake == 'true'
+        if: steps.config.outputs.has_cmake == 'True'
         working-directory: mods/${{ matrix.mod }}
-        run: cmake -B build -G "Visual Studio 17 2022" -A x64
+        run: cmake -B build -G "Visual Studio 17 2022" -A ${{ steps.config.outputs.arch }}
 
       - name: Build (CMake)
-        if: steps.check-cmake.outputs.has_cmake == 'true'
+        if: steps.config.outputs.has_cmake == 'True'
         working-directory: mods/${{ matrix.mod }}
         run: cmake --build build --config Release
 

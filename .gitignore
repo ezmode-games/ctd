@@ -1,1 +1,4 @@
 target/
+
+# CMake build directories
+mods/*/build/
