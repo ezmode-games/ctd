@@ -57,6 +57,16 @@ FetchContent_Declare(
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(mmio)
 
+# robin_hood (required by CommonLibF4)
+FetchContent_Declare(
+    robin_hood
+    GIT_REPOSITORY https://github.com/martinus/robin-hood-hashing.git
+    GIT_TAG master
+    OVERRIDE_FIND_PACKAGE
+)
+set(RH_STANDALONE_PROJECT OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(robin_hood)
+
 # CommonLibF4
 FetchContent_Declare(
     CommonLibF4

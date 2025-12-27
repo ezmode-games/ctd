@@ -6,7 +6,7 @@
 #include <cstdint>
 
 // xNVSE common types (must come before other NVSE headers)
-#include "ITypes.h"
+#include "common/ITypes.h"
 
 #include "PluginAPI.h"
 #include "ctd-falloutnv/src/lib.rs.h"  // CXX-generated Rust interface

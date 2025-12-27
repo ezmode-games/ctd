@@ -85,8 +85,8 @@ add_library(${PLUGIN_TARGET} SHARED
 target_include_directories(${PLUGIN_TARGET} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
-    # xFOSE headers (common has type definitions)
-    ${xfose_SOURCE_DIR}/common
+    # xFOSE headers (root for common/, fose/ subdirs)
+    ${xfose_SOURCE_DIR}
     ${xfose_SOURCE_DIR}/fose
     ${xfose_SOURCE_DIR}/fose/fose
     # CXX bridge output location
