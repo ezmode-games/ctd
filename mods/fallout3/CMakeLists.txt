@@ -22,15 +22,15 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 
 include(FetchContent)
 
-# FOSE (Fallout Script Extender)
+# xFOSE (community continuation of FOSE)
 FetchContent_Declare(
-    FOSE
-    GIT_REPOSITORY https://github.com/ianpatt/fose.git
+    xFOSE
+    GIT_REPOSITORY https://github.com/AtomicTEM/xFOSE.git
     GIT_TAG master
 )
-FetchContent_GetProperties(FOSE)
-if(NOT fose_POPULATED)
-    FetchContent_Populate(FOSE)
+FetchContent_GetProperties(xFOSE)
+if(NOT xfose_POPULATED)
+    FetchContent_Populate(xFOSE)
 endif()
 
 # ============================================================================
@@ -85,8 +85,8 @@ add_library(${PLUGIN_TARGET} SHARED
 target_include_directories(${PLUGIN_TARGET} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
-    # FOSE headers
-    ${fose_SOURCE_DIR}/fose
+    # xFOSE headers
+    ${xfose_SOURCE_DIR}/fose
     # CXX bridge output location
     ${RUST_TARGET_DIR}/cxxbridge
     ${RUST_TARGET_DIR}/i686-pc-windows-msvc/cxxbridge

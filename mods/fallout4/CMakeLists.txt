@@ -50,7 +50,7 @@ FetchContent_MakeAvailable(spdlog)
 FetchContent_Declare(
     CommonLibF4
     GIT_REPOSITORY https://github.com/Ryan-rsm-McKenzie/CommonLibF4.git
-    GIT_TAG main
+    GIT_TAG master
 )
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 

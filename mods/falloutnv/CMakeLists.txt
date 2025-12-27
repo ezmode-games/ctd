@@ -26,7 +26,7 @@ include(FetchContent)
 FetchContent_Declare(
     xNVSE
     GIT_REPOSITORY https://github.com/xNVSE/NVSE.git
-    GIT_TAG main
+    GIT_TAG master
 )
 FetchContent_GetProperties(xNVSE)
 if(NOT xnvse_POPULATED)
