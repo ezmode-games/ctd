@@ -46,6 +46,15 @@ FetchContent_Declare(
 set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(spdlog)
 
+# mmio (required by CommonLibF4)
+FetchContent_Declare(
+    mmio
+    GIT_REPOSITORY https://github.com/Ryan-rsm-McKenzie/mmio.git
+    GIT_TAG main
+    OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(mmio)
+
 # CommonLibF4
 FetchContent_Declare(
     CommonLibF4

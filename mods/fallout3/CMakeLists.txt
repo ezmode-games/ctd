@@ -26,7 +26,7 @@ include(FetchContent)
 FetchContent_Declare(
     xFOSE
     GIT_REPOSITORY https://github.com/AtomicTEM/xFOSE.git
-    GIT_TAG master
+    GIT_TAG main
 )
 FetchContent_GetProperties(xFOSE)
 if(NOT xfose_POPULATED)
