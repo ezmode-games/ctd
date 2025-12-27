@@ -50,7 +50,7 @@ mod ffi {
 
     // Functions imported from C++ to Rust
     unsafe extern "C++" {
-        include!("ctd-skyrim/cpp/bridge.hpp");
+        include!("cpp/bridge.hpp");
 
         /// Get the current load order from TESDataHandler.
         fn get_load_order() -> Vec<ModInfo>;
