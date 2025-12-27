@@ -41,128 +41,67 @@ jobs:
           cmake --build build --config Release
 
       # Package for Nexus
-      - name: Package Nexus releases
+      - name: Package Cyberpunk
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}"
           New-Item -ItemType Directory -Force -Path dist
 
-          # === Cyberpunk Nexus Package ===
           if (Test-Path "target/release/ctd_cyberpunk.dll") {
             $cyberpunkDir = "dist/cyberpunk-nexus"
 
-            # RED4ext structure
             New-Item -ItemType Directory -Force -Path "$cyberpunkDir/red4ext/plugins/ctd-cyberpunk"
             Copy-Item "target/release/ctd_cyberpunk.dll" "$cyberpunkDir/red4ext/plugins/ctd-cyberpunk/"
 
             # Config file
-            @"
-# CTD (Crash to Desktop Reporter) Configuration
-[api]
-url = "https://ctd.ezmode.games"
-crashes_path = "/crashes"
-timeout_secs = 30
-"@ | Out-File -FilePath "$cyberpunkDir/red4ext/plugins/ctd-cyberpunk/ctd.toml" -Encoding UTF8
+            $configContent = "# CTD (Crash to Desktop Reporter) Configuration`n"
+            $configContent += "[api]`n"
+            $configContent += "url = `"https://ctd.ezmode.games`"`n"
+            $configContent += "crashes_path = `"/crashes`"`n"
+            $configContent += "timeout_secs = 30`n"
+            Set-Content -Path "$cyberpunkDir/red4ext/plugins/ctd-cyberpunk/ctd.toml" -Value $configContent -Encoding UTF8
 
-            # FOMOD installer
+            # FOMOD
             New-Item -ItemType Directory -Force -Path "$cyberpunkDir/fomod"
-            @"
-<?xml version="1.0" encoding="UTF-8"?>
-<fomod>
-    <Name>CTD - Crash to Desktop Reporter</Name>
-    <Author>ezmode.games</Author>
-    <Version>$version</Version>
-    <Website>https://github.com/ezmode-games/ctd</Website>
-    <Description>Captures crash information and submits it to a crash reporting service.</Description>
-</fomod>
-"@ | Out-File -FilePath "$cyberpunkDir/fomod/info.xml" -Encoding UTF8
+            $infoXml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`n<fomod>`n  <Name>CTD - Crash to Desktop Reporter</Name>`n  <Author>ezmode.games</Author>`n  <Version>$version</Version>`n  <Website>https://github.com/ezmode-games/ctd</Website>`n</fomod>"
+            Set-Content -Path "$cyberpunkDir/fomod/info.xml" -Value $infoXml -Encoding UTF8
 
-            @"
-<?xml version="1.0" encoding="UTF-8"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
-    <moduleName>CTD - Crash to Desktop Reporter</moduleName>
-    <requiredInstallFiles>
-        <folder source="red4ext" destination="red4ext" />
-    </requiredInstallFiles>
-</config>
-"@ | Out-File -FilePath "$cyberpunkDir/fomod/ModuleConfig.xml" -Encoding UTF8
+            $moduleXml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`n<config xmlns:xsi=`"http://www.w3.org/2001/XMLSchema-instance`"><moduleName>CTD</moduleName><requiredInstallFiles><folder source=`"red4ext`" destination=`"red4ext`"/></requiredInstallFiles></config>"
+            Set-Content -Path "$cyberpunkDir/fomod/ModuleConfig.xml" -Value $moduleXml -Encoding UTF8
 
-            # README
-            @"
-CTD - Crash to Desktop Reporter (Cyberpunk 2077)
-================================================
-
-Automatically captures crash info and reports it.
-
-REQUIREMENTS: RED4ext
-
-INSTALL: Copy red4ext folder to your Cyberpunk 2077 directory.
-
-CONFIG: Edit red4ext/plugins/ctd-cyberpunk/ctd.toml
-
-https://github.com/ezmode-games/ctd
-"@ | Out-File -FilePath "$cyberpunkDir/README.txt" -Encoding UTF8
+            Set-Content -Path "$cyberpunkDir/README.txt" -Value "CTD - Crash to Desktop Reporter`nRequires RED4ext`nhttps://github.com/ezmode-games/ctd" -Encoding UTF8
 
             Compress-Archive -Path "$cyberpunkDir/*" -DestinationPath "dist/CTD-Cyberpunk-$version.zip"
           }
 
-          # === Skyrim Nexus Package ===
+      - name: Package Skyrim
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+
           if (Test-Path "mods/skyrim/build/Release/ctd-skyrim.dll") {
             $skyrimDir = "dist/skyrim-nexus"
 
-            # SKSE structure
             New-Item -ItemType Directory -Force -Path "$skyrimDir/SKSE/Plugins"
             Copy-Item "mods/skyrim/build/Release/ctd-skyrim.dll" "$skyrimDir/SKSE/Plugins/"
 
             # Config file
-            @"
-# CTD (Crash to Desktop Reporter) Configuration
-[api]
-url = "https://ctd.ezmode.games"
-crashes_path = "/crashes"
-timeout_secs = 30
-"@ | Out-File -FilePath "$skyrimDir/SKSE/Plugins/ctd.toml" -Encoding UTF8
+            $configContent = "# CTD (Crash to Desktop Reporter) Configuration`n"
+            $configContent += "[api]`n"
+            $configContent += "url = `"https://ctd.ezmode.games`"`n"
+            $configContent += "crashes_path = `"/crashes`"`n"
+            $configContent += "timeout_secs = 30`n"
+            Set-Content -Path "$skyrimDir/SKSE/Plugins/ctd.toml" -Value $configContent -Encoding UTF8
 
-            # FOMOD installer
+            # FOMOD
             New-Item -ItemType Directory -Force -Path "$skyrimDir/fomod"
-            @"
-<?xml version="1.0" encoding="UTF-8"?>
-<fomod>
-    <Name>CTD - Crash to Desktop Reporter</Name>
-    <Author>ezmode.games</Author>
-    <Version>$version</Version>
-    <Website>https://github.com/ezmode-games/ctd</Website>
-    <Description>Captures crash information and submits it to a crash reporting service.</Description>
-</fomod>
-"@ | Out-File -FilePath "$skyrimDir/fomod/info.xml" -Encoding UTF8
+            $infoXml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`n<fomod>`n  <Name>CTD - Crash to Desktop Reporter</Name>`n  <Author>ezmode.games</Author>`n  <Version>$version</Version>`n  <Website>https://github.com/ezmode-games/ctd</Website>`n</fomod>"
+            Set-Content -Path "$skyrimDir/fomod/info.xml" -Value $infoXml -Encoding UTF8
 
-            @"
-<?xml version="1.0" encoding="UTF-8"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
-    <moduleName>CTD - Crash to Desktop Reporter</moduleName>
-    <requiredInstallFiles>
-        <folder source="SKSE" destination="SKSE" />
-    </requiredInstallFiles>
-</config>
-"@ | Out-File -FilePath "$skyrimDir/fomod/ModuleConfig.xml" -Encoding UTF8
+            $moduleXml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`n<config xmlns:xsi=`"http://www.w3.org/2001/XMLSchema-instance`"><moduleName>CTD</moduleName><requiredInstallFiles><folder source=`"SKSE`" destination=`"SKSE`"/></requiredInstallFiles></config>"
+            Set-Content -Path "$skyrimDir/fomod/ModuleConfig.xml" -Value $moduleXml -Encoding UTF8
 
-            # README
-            @"
-CTD - Crash to Desktop Reporter (Skyrim SE/AE)
-==============================================
-
-Automatically captures crash info and reports it.
-
-REQUIREMENTS: SKSE64
-
-INSTALL: Copy SKSE folder to your Skyrim Data directory.
-
-CONFIG: Edit Data/SKSE/Plugins/ctd.toml
-
-https://github.com/ezmode-games/ctd
-"@ | Out-File -FilePath "$skyrimDir/README.txt" -Encoding UTF8
+            Set-Content -Path "$skyrimDir/README.txt" -Value "CTD - Crash to Desktop Reporter`nRequires SKSE64`nhttps://github.com/ezmode-games/ctd" -Encoding UTF8
 
             Compress-Archive -Path "$skyrimDir/*" -DestinationPath "dist/CTD-Skyrim-$version.zip"
           }
