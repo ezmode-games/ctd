@@ -119,6 +119,10 @@ FetchContent_Declare(
 )
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(nowide)
+# Create alias that CommonLibF4 expects
+if(TARGET nowide AND NOT TARGET nowide::nowide)
+    add_library(nowide::nowide ALIAS nowide)
+endif()
 
 # xbyak (JIT assembler, required by CommonLibF4)
 FetchContent_Declare(
