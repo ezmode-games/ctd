@@ -79,7 +79,7 @@ set(srell_INCLUDE_DIR "${srell_SOURCE_DIR}" CACHE PATH "" FORCE)
 # Use source tarball for traditional layout (has boost/version.hpp that FindBoost needs)
 FetchContent_Declare(
     Boost
-    URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0.tar.xz
+    URL https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 # Only populate, don't build - we just need headers
