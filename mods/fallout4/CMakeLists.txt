@@ -56,25 +56,6 @@ FetchContent_Declare(
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(mmio)
 
-# robin_hood (required by CommonLibF4)
-FetchContent_Declare(
-    robin_hood
-    GIT_REPOSITORY https://github.com/martinus/robin-hood-hashing.git
-    GIT_TAG master
-    OVERRIDE_FIND_PACKAGE
-)
-set(RH_STANDALONE_PROJECT OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(robin_hood)
-
-# srell (header-only regex library required by CommonLibF4)
-FetchContent_Declare(
-    srell
-    GIT_REPOSITORY https://github.com/ZimProjects/SRELL.git
-    GIT_TAG trunk
-)
-FetchContent_MakeAvailable(srell)
-set(srell_INCLUDE_DIR "${srell_SOURCE_DIR}" CACHE PATH "" FORCE)
-
 # Boost (header-only, required by CommonLibF4)
 # Use source tarball for traditional layout (has boost/version.hpp that FindBoost needs)
 FetchContent_Declare(
@@ -92,71 +73,18 @@ set(BOOST_ROOT "${boost_SOURCE_DIR}" CACHE PATH "" FORCE)
 set(Boost_INCLUDE_DIR "${boost_SOURCE_DIR}" CACHE PATH "" FORCE)
 set(Boost_NO_SYSTEM_PATHS ON CACHE BOOL "" FORCE)
 
-# args (argument parser, required by CommonLibF4)
-FetchContent_Declare(
-    args
-    GIT_REPOSITORY https://github.com/Taywee/args.git
-    GIT_TAG master
-    OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(args)
-
-# frozen (compile-time containers, required by CommonLibF4)
-FetchContent_Declare(
-    frozen
-    GIT_REPOSITORY https://github.com/serge-sans-paille/frozen.git
-    GIT_TAG master
-    OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(frozen)
-
-# nowide (UTF-8 support, required by CommonLibF4)
-FetchContent_Declare(
-    nowide
-    GIT_REPOSITORY https://github.com/boostorg/nowide.git
-    GIT_TAG master
-    OVERRIDE_FIND_PACKAGE
-)
-set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(nowide)
-# Create alias that CommonLibF4 expects
-if(TARGET nowide AND NOT TARGET nowide::nowide)
-    add_library(nowide::nowide ALIAS nowide)
-endif()
-
-# xbyak (JIT assembler, required by CommonLibF4)
-FetchContent_Declare(
-    xbyak
-    GIT_REPOSITORY https://github.com/herumi/xbyak.git
-    GIT_TAG master
-    OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(xbyak)
-
-# Catch2 (testing framework, required by CommonLibF4)
-FetchContent_Declare(
-    Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.5.2
-    OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(Catch2)
-
-# CommonLibF4
+# CommonLibF4 - only add the library, not the umbrella (F4SEStub has extra deps we don't need)
 FetchContent_Declare(
     CommonLibF4
     GIT_REPOSITORY https://github.com/Ryan-rsm-McKenzie/CommonLibF4.git
     GIT_TAG master
 )
-set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-
-# Skip install rules for CommonLibF4 to avoid export conflicts
 FetchContent_GetProperties(CommonLibF4)
 if(NOT commonlibf4_POPULATED)
     FetchContent_Populate(CommonLibF4)
-    # Disable install() commands in the subdirectory
+    # Add only the library subdirectory, not the umbrella (avoids F4SEStub deps)
     set(CMAKE_SKIP_INSTALL_RULES ON)
-    add_subdirectory(${commonlibf4_SOURCE_DIR} ${commonlibf4_BINARY_DIR} EXCLUDE_FROM_ALL)
+    add_subdirectory(${commonlibf4_SOURCE_DIR}/CommonLibF4 ${commonlibf4_BINARY_DIR}/CommonLibF4 EXCLUDE_FROM_ALL)
     set(CMAKE_SKIP_INSTALL_RULES OFF)
 endif()
 
@@ -220,7 +148,7 @@ target_include_directories(${PLUGIN_TARGET} PRIVATE
 )
 
 target_link_libraries(${PLUGIN_TARGET} PRIVATE
-    CommonLibF4
+    CommonLibF4::CommonLibF4
     ctd-fallout4-lib
     # Windows libraries required by Rust
     DbgHelp
