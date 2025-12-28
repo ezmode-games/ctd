@@ -1,0 +1,30 @@
+[package]
+name = "ctd-fallout4"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "F4SE plugin for Fallout 4 crash capture and reporting"
+links = "ctd-fallout4"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+# Core CTD library
+ctd-core = { path = "../../lib/ctd-core" }
+
+# C++/Rust interop
+cxx = "1.0"
+
+# Async runtime for API calls
+tokio = { version = "1", features = ["rt", "net", "sync"] }
+
+# Error handling
+thiserror.workspace = true
+
+# Logging
+tracing.workspace = true
+
+[build-dependencies]
+cxx-build = "1.0"
