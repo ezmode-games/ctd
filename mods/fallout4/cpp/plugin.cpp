@@ -80,7 +80,7 @@ rust::Vec<PluginInfo> get_load_order() {
         PluginInfo info;
         info.name = rust::String(file->filename);
         info.index = file->compileIndex;
-        info.is_light = file->IsLight();
+        info.is_light = false;  // F4 doesn't have light plugins (ESL), that's Skyrim SE only
         plugins.push_back(std::move(info));
     }
 
@@ -96,7 +96,7 @@ rust::String get_game_version() {
 
 // Get F4SE version
 rust::String get_f4se_version() {
-    return rust::String(F4SE::PluginDeclaration::GetSingleton()->GetVersion().string());
+    return rust::String(F4SE::GetF4SEVersion().string());
 }
 
 }  // namespace ctd
