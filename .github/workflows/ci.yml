@@ -34,8 +34,8 @@ jobs:
       - name: Detect changed mods
         id: mods
         run: |
-          # Get all mod directories (excluding oblivion-remastered which requires Epic Games access)
-          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | grep -v oblivion-remastered | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          # Get all mod directories (exclude oblivion-remastered - requires UEPseudo private submodule)
+          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | grep -v '^oblivion-remastered$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
 
           # Get changed files in this PR/push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -67,7 +67,7 @@ jobs:
     name: Lint
     needs: changes
     if: needs.changes.outputs.rust == 'true'
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -82,15 +82,14 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-      # Only lint cross-platform crates on CI (mods are Windows-only)
-      - name: Clippy (core)
-        run: cargo clippy -p ctd-core -- -D warnings
+      - name: Clippy
+        run: cargo clippy --workspace -- -D warnings
 
   test:
     name: Test
     needs: changes
     if: needs.changes.outputs.rust == 'true'
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -125,9 +124,7 @@ jobs:
         shell: pwsh
         run: |
           $hasCmake = Test-Path "mods/${{ matrix.mod }}/CMakeLists.txt"
-          $isUE4SS = Test-Path "mods/${{ matrix.mod }}/RE-UE4SS"
           echo "has_cmake=$hasCmake" >> $env:GITHUB_OUTPUT
-          echo "is_ue4ss=$isUE4SS" >> $env:GITHUB_OUTPUT
 
           # Default to x64
           $arch = "x64"
@@ -145,41 +142,28 @@ jobs:
 
           echo "arch=$arch" >> $env:GITHUB_OUTPUT
           echo "rust_target=$rustTarget" >> $env:GITHUB_OUTPUT
-          echo "Build config: cmake=$hasCmake, ue4ss=$isUE4SS, arch=$arch, target=$rustTarget"
+          echo "Build config: cmake=$hasCmake, arch=$arch, target=$rustTarget"
 
       # Pure Rust build
       - name: Build (Cargo)
         if: steps.config.outputs.has_cmake == 'False'
         run: cargo build -p ctd-${{ matrix.mod }} --release
 
-      # CMake hybrid build (non-UE4SS)
+      # CMake hybrid build
       - name: Build Rust (CMake project)
-        if: steps.config.outputs.has_cmake == 'True' && steps.config.outputs.is_ue4ss == 'False'
+        if: steps.config.outputs.has_cmake == 'True'
         working-directory: mods/${{ matrix.mod }}
         run: cargo build --release --target ${{ steps.config.outputs.rust_target }} --target-dir build/rust-build
 
       - name: Configure CMake
-        if: steps.config.outputs.has_cmake == 'True' && steps.config.outputs.is_ue4ss == 'False'
+        if: steps.config.outputs.has_cmake == 'True'
         working-directory: mods/${{ matrix.mod }}
         run: cmake -B build -G "Visual Studio 17 2022" -A ${{ steps.config.outputs.arch }}
 
       - name: Build (CMake)
-        if: steps.config.outputs.has_cmake == 'True' && steps.config.outputs.is_ue4ss == 'False'
+        if: steps.config.outputs.has_cmake == 'True'
         working-directory: mods/${{ matrix.mod }}
         run: cmake --build build --config Release
-
-      # UE4SS mod build (special handling)
-      - name: Configure UE4SS mod
-        if: steps.config.outputs.is_ue4ss == 'True'
-        working-directory: mods/${{ matrix.mod }}
-        run: cmake -B build -G "Visual Studio 17 2022" -A x64
-
-      - name: Build UE4SS mod
-        if: steps.config.outputs.is_ue4ss == 'True'
-        working-directory: mods/${{ matrix.mod }}
-        env:
-          RUSTFLAGS: -A mismatched_lifetime_syntaxes -A unused_imports
-        run: cmake --build build --config Game__Shipping__Win64
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -188,7 +172,6 @@ jobs:
           path: |
             target/release/*.dll
             mods/${{ matrix.mod }}/build/Release/*.dll
-            mods/${{ matrix.mod }}/build/CTDCrashReporter/dlls/**/main.dll
           if-no-files-found: warn
 
   ci-success:
