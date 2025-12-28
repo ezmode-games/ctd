@@ -76,15 +76,21 @@ FetchContent_MakeAvailable(srell)
 set(srell_INCLUDE_DIR "${srell_SOURCE_DIR}" CACHE PATH "" FORCE)
 
 # Boost (header-only, required by CommonLibF4)
+# Use source tarball for traditional layout (has boost/version.hpp that FindBoost needs)
 FetchContent_Declare(
     Boost
-    URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0-cmake.tar.gz
+    URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0.tar.xz
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
-set(BOOST_INCLUDE_LIBRARIES stl_interfaces)
-FetchContent_MakeAvailable(Boost)
+# Only populate, don't build - we just need headers
+FetchContent_GetProperties(Boost)
+if(NOT boost_POPULATED)
+    FetchContent_Populate(Boost)
+endif()
+# Set variables for FindBoost.cmake
+set(BOOST_ROOT "${boost_SOURCE_DIR}" CACHE PATH "" FORCE)
 set(Boost_INCLUDE_DIR "${boost_SOURCE_DIR}" CACHE PATH "" FORCE)
-set(Boost_FOUND TRUE CACHE BOOL "" FORCE)
+set(Boost_NO_SYSTEM_PATHS ON CACHE BOOL "" FORCE)
 
 # args (argument parser, required by CommonLibF4)
 FetchContent_Declare(
@@ -122,6 +128,15 @@ FetchContent_Declare(
     OVERRIDE_FIND_PACKAGE
 )
 FetchContent_MakeAvailable(xbyak)
+
+# Catch2 (testing framework, required by CommonLibF4)
+FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG v3.5.2
+    OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(Catch2)
 
 # CommonLibF4
 FetchContent_Declare(
