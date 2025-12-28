@@ -5,6 +5,11 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use ctd_core::api_client::ApiClient;
+use ctd_core::crash_report::CreateCrashReport;
+use ctd_core::load_order::LoadOrder;
+use tracing::{error, info};
+
 static HANDLER_INSTALLED: AtomicBool = AtomicBool::new(false);
 
 /// Install the crash handler
@@ -21,15 +26,16 @@ pub fn install_handler() {
         let handler = CrashHandler::attach(unsafe {
             crash_handler::make_crash_event(move |crash_context| {
                 handle_crash(crash_context);
+                crash_handler::CrashEventResult::Handled(true)
             })
         });
 
         match handler {
             Ok(_) => {
-                tracing::info!("Crash handler installed successfully");
+                info!("Crash handler installed successfully");
             }
             Err(e) => {
-                tracing::error!("Failed to install crash handler: {:?}", e);
+                error!("Failed to install crash handler: {:?}", e);
                 HANDLER_INSTALLED.store(false, Ordering::SeqCst);
             }
         }
@@ -46,15 +52,13 @@ pub fn remove_handler() {
     if !HANDLER_INSTALLED.swap(false, Ordering::SeqCst) {
         return;
     }
-    tracing::info!("Crash handler removed");
+    info!("Crash handler removed");
 }
 
 /// Handle a crash event
 #[cfg(windows)]
 fn handle_crash(crash_context: &crash_handler::CrashContext) {
-    use crate::game_info;
-    use ctd_core::crash_report::CreateCrashReport;
-    use ctd_core::load_order::LoadOrder;
+    use crate::{ffi, game_info};
 
     // Get game info
     let game_info = match game_info() {
@@ -65,15 +69,17 @@ fn handle_crash(crash_context: &crash_handler::CrashContext) {
         }
     };
 
-    // Extract exception info
-    let exception_code = crash_context
-        .exception_code
-        .map(|c| format!("0x{:08X}", c));
+    // Get load order from C++ side
+    let mods = ffi::get_load_order();
+    let load_order = build_load_order(mods);
 
-    // Build stack trace (basic for now)
+    // Extract exception info
+    let exception_code = format!("0x{:08X}", crash_context.exception_code);
+
+    // Build stack trace
     let stack_trace = format!(
         "Exception: {}\nGame: {} v{}\nUE: {}",
-        exception_code.as_deref().unwrap_or("UNKNOWN"),
+        exception_code,
         game_info.game_name,
         game_info.game_version,
         game_info.ue_version
@@ -85,9 +91,9 @@ fn handle_crash(crash_context: &crash_handler::CrashContext) {
         .game_version(&game_info.game_version)
         .script_extender_version(&game_info.ue_version)
         .stack_trace(stack_trace)
-        .exception_code(exception_code.unwrap_or_default())
-        .os_version(get_os_version().unwrap_or_default())
-        .load_order(LoadOrder::new()) // TODO: Get from C++ side
+        .exception_code(exception_code)
+        .os_version(get_os_version())
+        .load_order(load_order)
         .crashed_now()
         .build()
     {
@@ -98,41 +104,96 @@ fn handle_crash(crash_context: &crash_handler::CrashContext) {
         }
     };
 
-    // Try to submit synchronously (we're in a crash context, async won't work)
-    if let Err(e) = submit_crash_report_sync(&report) {
-        eprintln!("CTD: Failed to submit crash report: {:?}", e);
-    }
+    // Submit in a separate thread to avoid blocking crash handling
+    std::thread::spawn(move || {
+        if let Err(e) = submit_crash_report(report) {
+            error!("Failed to submit crash report: {}", e);
+        }
+    });
 }
 
+/// Build LoadOrder from FFI plugin info
 #[cfg(windows)]
-fn submit_crash_report_sync(
-    report: &ctd_core::crash_report::CreateCrashReport,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // Use blocking reqwest since we're in a crash context
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
+fn build_load_order(mods: Vec<crate::ffi::PluginInfo>) -> LoadOrder {
+    use ctd_core::load_order::LoadOrderEntry;
+
+    let mut load_order = LoadOrder::new();
+    for plugin in mods {
+        let mut entry = LoadOrderEntry::new(plugin.name);
+        entry.index = Some(plugin.index);
+        entry.enabled = Some(true); // If it's in the list, it's enabled
+        load_order.push(entry);
+    }
+    load_order
+}
+
+/// Submit crash report using ctd-core ApiClient (respects ctd.toml config)
+#[cfg(windows)]
+fn submit_crash_report(
+    report: CreateCrashReport,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Create runtime for async API call
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
         .build()?;
 
-    let response = client
-        .post("https://ctd.ezmode.games/api/crashes")
-        .json(report)
-        .send()?;
+    // Submit the report using ApiClient which reads from ctd.toml
+    let response = rt.block_on(async {
+        let client = ApiClient::from_config().or_else(|_| ApiClient::with_defaults())?;
+        client.submit_crash_report(&report).await
+    })?;
 
-    if response.status().is_success() {
-        eprintln!("CTD: Crash report submitted successfully");
-        Ok(())
-    } else {
-        Err(format!("Server returned {}", response.status()).into())
-    }
+    info!("Crash report submitted: {}", response.id);
+    Ok(())
 }
 
-fn get_os_version() -> Option<String> {
+fn get_os_version() -> String {
     #[cfg(windows)]
     {
-        Some("Windows".to_string()) // TODO: Get actual version
+        use windows::Win32::System::SystemInformation::{
+            GetVersionExW, OSVERSIONINFOW,
+        };
+
+        let mut info = OSVERSIONINFOW {
+            dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as u32,
+            ..Default::default()
+        };
+
+        #[allow(deprecated)]
+        let success = unsafe { GetVersionExW(&mut info).is_ok() };
+
+        if success {
+            format!(
+                "Windows {}.{}.{}",
+                info.dwMajorVersion, info.dwMinorVersion, info.dwBuildNumber
+            )
+        } else {
+            "Windows".to_string()
+        }
     }
     #[cfg(not(windows))]
     {
-        None
+        "Unknown".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_handler_installed_default() {
+        // Handler should not be installed by default at test start
+        // Note: This may be affected by other tests running in parallel
+        let _ = HANDLER_INSTALLED.load(Ordering::SeqCst);
+    }
+
+    #[test]
+    fn test_get_os_version() {
+        let version = get_os_version();
+        #[cfg(windows)]
+        assert!(version.starts_with("Windows"));
+        #[cfg(not(windows))]
+        assert_eq!(version, "Unknown");
     }
 }

@@ -2,3 +2,9 @@ target/
 
 # CMake build directories
 mods/*/build/
+
+# Downloaded dependencies
+mods/*/deps/*.zip
+
+# Distribution archives
+*.zip

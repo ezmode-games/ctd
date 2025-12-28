@@ -18,7 +18,8 @@ pub struct GameInfo {
     pub ue_version: String,
 }
 
-#[cxx::bridge]
+#[allow(dead_code)]
+#[cxx::bridge(namespace = "ctd")]
 mod ffi {
     /// Plugin info for load order
     struct PluginInfo {
@@ -39,7 +40,7 @@ mod ffi {
     }
 
     unsafe extern "C++" {
-        include!("ctd-ue5/cpp/bridge.hpp");
+        include!("bridge.hpp");
 
         /// Get the load order from UE4SS (game-specific)
         fn get_load_order() -> Vec<PluginInfo>;
@@ -83,4 +84,33 @@ pub fn shutdown() {
 /// Get the current game info
 pub fn game_info() -> Option<&'static GameInfo> {
     GAME_INFO.get()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_game_info_struct() {
+        let info = GameInfo {
+            game_name: "oblivion-remastered".to_string(),
+            game_version: "1.0.0".to_string(),
+            ue_version: "5.3".to_string(),
+        };
+        assert_eq!(info.game_name, "oblivion-remastered");
+        assert_eq!(info.game_version, "1.0.0");
+        assert_eq!(info.ue_version, "5.3");
+    }
+
+    #[test]
+    fn test_ffi_plugin_info() {
+        let plugin = ffi::PluginInfo {
+            name: "TestMod.esp".to_string(),
+            index: 1,
+            is_light: false,
+        };
+        assert_eq!(plugin.name, "TestMod.esp");
+        assert_eq!(plugin.index, 1);
+        assert!(!plugin.is_light);
+    }
 }

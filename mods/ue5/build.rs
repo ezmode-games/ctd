@@ -1,6 +1,7 @@
 fn main() {
     cxx_build::bridge("src/lib.rs")
         .file("cpp/bridge.cpp")
+        .include("cpp")
         .std("c++20")
         .compile("ctd-ue5-cxx");
 

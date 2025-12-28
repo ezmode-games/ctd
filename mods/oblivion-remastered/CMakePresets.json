@@ -1,0 +1,48 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 22,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "vs2022",
+      "displayName": "Visual Studio 2022",
+      "inherits": "base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "toolset": "v143"
+    },
+    {
+      "name": "ninja",
+      "displayName": "Ninja",
+      "inherits": "base",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Game__Shipping__Win64"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "shipping",
+      "displayName": "Game Shipping Win64",
+      "configurePreset": "vs2022",
+      "configuration": "Game__Shipping__Win64"
+    },
+    {
+      "name": "shipping-ninja",
+      "displayName": "Game Shipping Win64 (Ninja)",
+      "configurePreset": "ninja"
+    }
+  ]
+}
