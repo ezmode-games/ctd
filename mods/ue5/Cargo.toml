@@ -1,0 +1,43 @@
+[package]
+name = "ctd-ue5"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "CTD crash reporter for Unreal Engine 5 games via UE4SS"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+ctd-core = { path = "../../lib/ctd-core" }
+
+# C++ interop
+cxx = "1.0"
+
+# Windows crash handling
+crash-handler = "0.6"
+minidump-writer = "0.10"
+
+# Async runtime for HTTP
+tokio = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[build-dependencies]
+cxx-build = "1.0"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Threading",
+    "Win32_System_Memory",
+] }
