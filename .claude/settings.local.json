@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo fmt:*)",
+      "Bash(cargo check:*)",
+      "Bash(powershell:*)",
+      "Bash(cargo test:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.ue4ss.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(cargo build:*)",
+      "Bash(ssh:*)",
+      "Bash(git submodule:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}

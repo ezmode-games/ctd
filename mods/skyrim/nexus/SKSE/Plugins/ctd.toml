@@ -1,0 +1,20 @@
+# CTD (Crash to Desktop Reporter) Configuration
+#
+# This file configures where crash reports are sent.
+# Place this file in: Data/SKSE/Plugins/ctd.toml
+
+[api]
+# URL of the crash report server
+# Default: "http://localhost:3000"
+url = "https://ctd.ezmode.games"
+
+# API endpoint path for crash reports
+# Default: "/crashes"
+crashes_path = "/crashes"
+
+# Optional API key (if your server requires authentication)
+# api_key = "your-api-key-here"
+
+# Request timeout in seconds
+# Default: 30
+timeout_secs = 30

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
+    <moduleName>CTD - Crash to Desktop Reporter</moduleName>
+
+    <requiredInstallFiles>
+        <folder source="SKSE" destination="SKSE" />
+    </requiredInstallFiles>
+
+    <installSteps order="Explicit">
+        <installStep name="Welcome">
+            <optionalFileGroups order="Explicit">
+                <group name="CTD Installation" type="SelectExactlyOne">
+                    <plugins order="Explicit">
+                        <plugin name="Install CTD">
+                            <description>Installs the CTD crash reporter plugin.
+
+After installation, edit Data/SKSE/Plugins/ctd.toml to configure your crash report server URL.
+
+Default: https://ctd.ezmode.games</description>
+                            <image path=""/>
+                            <files />
+                            <typeDescriptor>
+                                <type name="Recommended"/>
+                            </typeDescriptor>
+                        </plugin>
+                    </plugins>
+                </group>
+            </optionalFileGroups>
+        </installStep>
+    </installSteps>
+</config>
