@@ -79,10 +79,7 @@ fn handle_crash(crash_context: &crash_handler::CrashContext) {
     // Build stack trace
     let stack_trace = format!(
         "Exception: {}\nGame: {} v{}\nUE: {}",
-        exception_code,
-        game_info.game_name,
-        game_info.game_version,
-        game_info.ue_version
+        exception_code, game_info.game_name, game_info.game_version, game_info.ue_version
     );
 
     // Build crash report using ctd-core builder
@@ -150,9 +147,7 @@ fn submit_crash_report(
 fn get_os_version() -> String {
     #[cfg(windows)]
     {
-        use windows::Win32::System::SystemInformation::{
-            GetVersionExW, OSVERSIONINFOW,
-        };
+        use windows::Win32::System::SystemInformation::{GetVersionExW, OSVERSIONINFOW};
 
         let mut info = OSVERSIONINFOW {
             dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as u32,
