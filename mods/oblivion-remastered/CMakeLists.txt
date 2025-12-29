@@ -2,8 +2,35 @@ cmake_minimum_required(VERSION 3.22)
 
 project(CTDCrashReporter)
 
-# UE4SS as git submodule (official template pattern)
-add_subdirectory(RE-UE4SS)
+# ============================================================================
+# UE4SS Dependencies
+# ============================================================================
+# Two modes:
+# 1. Local build: uses RE-UE4SS submodule (default)
+# 2. CI/Pre-built: set UE4SS_PREBUILT_DIR to downloaded deps
+
+if(DEFINED UE4SS_PREBUILT_DIR)
+    message(STATUS "Using pre-built UE4SS from: ${UE4SS_PREBUILT_DIR}")
+
+    # Create imported library for UE4SS
+    add_library(UE4SS STATIC IMPORTED GLOBAL)
+    set_target_properties(UE4SS PROPERTIES
+        IMPORTED_LOCATION "${UE4SS_PREBUILT_DIR}/lib/UE4SS.lib"
+    )
+
+    # Link all the dependency libs
+    file(GLOB UE4SS_DEP_LIBS "${UE4SS_PREBUILT_DIR}/lib/*.lib")
+
+    # Set include directories
+    target_include_directories(UE4SS INTERFACE
+        "${UE4SS_PREBUILT_DIR}/include"
+        "${UE4SS_PREBUILT_DIR}/include/UE4SS"
+        "${UE4SS_PREBUILT_DIR}/include/Unreal"
+    )
+else()
+    # Local build: use git submodule
+    add_subdirectory(RE-UE4SS)
+endif()
 
 # ============================================================================
 # Rust Library (ctd-ue5)
@@ -54,6 +81,9 @@ target_include_directories(${MOD_TARGET} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CXX_BRIDGE_DIR}
     ${UE5_MOD_DIR}/cpp
+    $<$<BOOL:${UE4SS_PREBUILT_DIR}>:${UE4SS_PREBUILT_DIR}/include>
+    $<$<BOOL:${UE4SS_PREBUILT_DIR}>:${UE4SS_PREBUILT_DIR}/include/UE4SS>
+    $<$<BOOL:${UE4SS_PREBUILT_DIR}>:${UE4SS_PREBUILT_DIR}/include/Unreal>
 )
 
 target_link_libraries(${MOD_TARGET} PRIVATE
@@ -67,6 +97,11 @@ target_link_libraries(${MOD_TARGET} PRIVATE
     bcrypt
     runtimeobject
 )
+
+# Link all pre-built UE4SS dependency libs
+if(DEFINED UE4SS_PREBUILT_DIR)
+    target_link_libraries(${MOD_TARGET} PRIVATE ${UE4SS_DEP_LIBS})
+endif()
 
 add_dependencies(${MOD_TARGET} ctd-ue5-build)
 
