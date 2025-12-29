@@ -2,3 +2,19 @@ target/
 
 # CMake build directories
 mods/*/build/
+
+# Downloaded dependencies
+mods/*/deps/*.zip
+
+# Distribution archives
+*.zip
+
+# Local settings
+.claude/
+
+# Nexus release packages (build artifacts)
+mods/*/nexus/
+mods/*/dist/
+
+# Random binaries
+*.exe

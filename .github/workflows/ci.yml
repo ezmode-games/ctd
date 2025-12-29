@@ -34,8 +34,8 @@ jobs:
       - name: Detect changed mods
         id: mods
         run: |
-          # Get all mod directories
-          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          # Get pure-Cargo mods only (exclude CMake mods - built locally)
+          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | grep -v -E '^(skyrim|fallout4|oblivion-remastered)$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
 
           # Get changed files in this PR/push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -83,7 +83,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --workspace -- -D warnings
+        run: cargo clippy -p ctd-core -p ctd-cyberpunk -- -D warnings
 
   test:
     name: Test
@@ -100,7 +100,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run tests
-        run: cargo test --workspace
+        run: cargo test -p ctd-core -p ctd-cyberpunk
 
   build-mods:
     name: Build ${{ matrix.mod }}

@@ -1,0 +1,23 @@
+# Nexus Mods metadata for CTD Crash Reporter - Oblivion Remastered
+
+[mod]
+name = "CTD Crash Reporter"
+version = "0.1.0"
+game = "oblivion-remastered"
+game_id = 7737  # Oblivion Remastered on Nexus
+
+[build]
+type = "ue4ss"
+arch = "x64"
+
+[description]
+summary = "Automatic crash reporting for Oblivion Remastered"
+features = [
+    "Captures crashes via Windows SEH exception handling",
+    "Collects load order (esp/esm plugins)",
+    "Submits crash reports to ctd.ezmode.games",
+    "Helps mod authors identify and fix compatibility issues"
+]
+
+[requirements]
+ue4ss = ">=3.0.0"
