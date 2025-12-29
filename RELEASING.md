@@ -4,59 +4,43 @@
 
 We use `0.x.y` versions until we're proud. Bump patch (`0.1.x`) for regular releases.
 
-## Quick Reference
+## Quick Release (Recommended)
 
-| Mod | Type | Auto-build? |
-|-----|------|-------------|
-| cyberpunk | Cargo | ✅ Yes |
-| skyrim | CMake | ❌ Manual |
-| fallout4 | CMake | ❌ Manual |
-| oblivion-remastered | CMake | ❌ Manual |
+One command does everything - builds, packages, tags, uploads, publishes:
 
-**Don't tag:** `ue5` (library, not a standalone mod)
+```powershell
+.\scripts\release-mod.ps1 skyrim 0.1.2
+```
 
-## Releasing a Cargo Mod (cyberpunk)
+Requires: `gh auth login` (GitHub CLI authenticated)
 
-Automatic build and release:
+## Manual Release
+
+### Cargo Mods (cyberpunk)
+
+Automatic build and release via CI:
 
 ```bash
 git tag cyberpunk-v0.1.2
 git push origin cyberpunk-v0.1.2
 ```
 
-The workflow builds, packages with FOMOD, and creates a GitHub Release.
-
-## Releasing a CMake Mod (skyrim, fallout4, oblivion-remastered)
-
-### 1. Build locally
+### CMake Mods (skyrim, fallout4, oblivion-remastered)
 
 ```powershell
+# Build
 .\scripts\build-mod.ps1 skyrim
-```
 
-### 2. Package
-
-```powershell
+# Package
 .\scripts\package-mod.ps1 skyrim 0.1.2
-```
 
-Output: `dist/ctd-skyrim-v0.1.2.zip`
-
-### 3. Create draft release
-
-```bash
+# Tag and push
 git tag skyrim-v0.1.2
 git push origin skyrim-v0.1.2
+
+# Upload (manual or use gh)
+gh release upload skyrim-v0.1.2 dist/ctd-skyrim-v0.1.2.zip
 ```
-
-This creates a **draft** release on GitHub.
-
-### 4. Upload and publish
-
-1. Go to https://github.com/ezmode-games/ctd/releases
-2. Find the draft release
-3. Upload `dist/ctd-skyrim-v0.1.2.zip`
-4. Click "Publish release"
 
 ## Scripts
 
