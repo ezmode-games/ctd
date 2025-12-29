@@ -18,6 +18,7 @@ $DllPaths = @(
     "$ModDir/build/Release/ctd-$Mod.dll",
     "$ModDir/build/Release/*.dll",
     "$ModDir/build/CTDCrashReporter/dlls/main.dll",
+    "$ModDir/build/CTDCrashReporter/dlls/Game__Shipping__Win64/main.dll",
     "$ModDir/build/Game__Shipping__Win64/CTDCrashReporter/dlls/main.dll"
 )
 

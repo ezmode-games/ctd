@@ -11,6 +11,23 @@ param(
 $ErrorActionPreference = "Stop"
 $ModDir = "mods/$Mod"
 
+# Set up VS environment if cmake not found
+if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
+    $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vsWhere) {
+        $vsPath = & $vsWhere -latest -property installationPath
+        $vcvars = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
+        if (Test-Path $vcvars) {
+            Write-Host "Setting up Visual Studio environment..." -ForegroundColor Gray
+            cmd /c "`"$vcvars`" && set" | ForEach-Object {
+                if ($_ -match "^([^=]+)=(.*)$") {
+                    [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+                }
+            }
+        }
+    }
+}
+
 if (-not (Test-Path "$ModDir/CMakeLists.txt")) {
     Write-Error "No CMakeLists.txt found in $ModDir"
     exit 1
@@ -33,14 +50,19 @@ if (Test-Path $NexusToml) {
 
 Write-Host "Architecture: $Arch ($RustTarget)" -ForegroundColor Gray
 
-# Build Rust first (for hybrid mods)
-Write-Host "`n[1/3] Building Rust library..." -ForegroundColor Yellow
-Push-Location $ModDir
-try {
-    cargo build --release --target $RustTarget --target-dir build/rust-build
-    if ($LASTEXITCODE -ne 0) { throw "Rust build failed" }
-} finally {
-    Pop-Location
+# Build Rust first (for hybrid mods that need it)
+# Skip for oblivion-remastered - CMake handles Rust build via custom command
+if ($Mod -ne "oblivion-remastered") {
+    Write-Host "`n[1/3] Building Rust library..." -ForegroundColor Yellow
+    Push-Location $ModDir
+    try {
+        cargo build --release --target $RustTarget --target-dir build/rust-build
+        if ($LASTEXITCODE -ne 0) { throw "Rust build failed" }
+    } finally {
+        Pop-Location
+    }
+} else {
+    Write-Host "`n[1/3] Rust library (built by CMake)..." -ForegroundColor Yellow
 }
 
 # Configure CMake
