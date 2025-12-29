@@ -3,8 +3,8 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
-      - "*-v*" # Per-mod tags like "cyberpunk-v1.0.0"
+      # Per-mod tags: <mod>-v<version> (e.g., skyrim-v1.0.0, ue5-v0.2.1)
+      - '*-v[0-9]*'
 
 permissions:
   contents: write
@@ -13,29 +13,49 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  discover-mods:
-    name: Discover Mods
+  parse-tag:
+    name: Parse Tag
     runs-on: ubuntu-latest
     outputs:
-      mods_matrix: ${{ steps.discover.outputs.matrix }}
+      mod_name: ${{ steps.parse.outputs.mod_name }}
+      version: ${{ steps.parse.outputs.version }}
+      build_type: ${{ steps.parse.outputs.build_type }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Discover mods with nexus.toml
-        id: discover
+      - name: Parse tag and determine build type
+        id: parse
         run: |
-          # Find all mods that have a nexus.toml
-          MODS=$(find mods -name "nexus.toml" -exec dirname {} \; | xargs -n1 basename | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "matrix={\"mod\":$MODS}" >> $GITHUB_OUTPUT
-          echo "Found mods: $MODS"
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "Processing tag: $TAG"
 
-  build-release:
-    name: Build ${{ matrix.mod }}
-    needs: discover-mods
+          # Extract mod name and version (e.g., skyrim-v1.0.0 -> skyrim, 1.0.0)
+          MOD_NAME=$(echo "$TAG" | sed -E 's/-v[0-9].*//')
+          VERSION=$(echo "$TAG" | sed -E 's/.*-v//')
+
+          echo "mod_name=$MOD_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Validate mod exists
+          if [ ! -d "mods/$MOD_NAME" ]; then
+            echo "::error::Mod directory mods/$MOD_NAME does not exist"
+            exit 1
+          fi
+
+          # Determine build type from CMakeLists.txt presence
+          if [ -f "mods/$MOD_NAME/CMakeLists.txt" ]; then
+            echo "build_type=cmake" >> $GITHUB_OUTPUT
+            echo "Build type: cmake (manual upload required)"
+          else
+            echo "build_type=cargo" >> $GITHUB_OUTPUT
+            echo "Build type: cargo (will build automatically)"
+          fi
+
+  build:
+    name: Build ${{ needs.parse-tag.outputs.mod_name }}
+    needs: parse-tag
+    if: needs.parse-tag.outputs.build_type == 'cargo'
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.discover-mods.outputs.mods_matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,195 +65,181 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Parse nexus.toml
+      - name: Parse nexus.toml config
         id: config
         shell: pwsh
         run: |
-          $config = Get-Content "mods/${{ matrix.mod }}/nexus.toml" -Raw
+          $mod = "${{ needs.parse-tag.outputs.mod_name }}"
+          $nexusPath = "mods/$mod/nexus.toml"
 
-          # Parse build type
-          if ($config -match 'type\s*=\s*"([^"]+)"') {
-            $buildType = $matches[1]
-          } else {
-            $buildType = "cargo"
-          }
-
-          # Parse output name
-          if ($config -match 'output\s*=\s*"([^"]+)"') {
-            $output = $matches[1]
-          } else {
-            $output = "ctd-${{ matrix.mod }}"
-          }
-
-          # Parse script extender
-          if ($config -match 'script_extender\s*=\s*"([^"]+)"') {
-            $scriptExtender = $matches[1]
-          } else {
-            $scriptExtender = "Unknown"
-          }
-
-          # Parse plugin path
-          if ($config -match 'plugin_path\s*=\s*"([^"]+)"') {
-            $pluginPath = $matches[1]
-          } else {
-            $pluginPath = "plugins"
-          }
-
-          # Parse config path
-          if ($config -match 'config_path\s*=\s*"([^"]+)"') {
-            $configPath = $matches[1]
-          } else {
-            $configPath = $pluginPath
-          }
-
-          # Parse fomod destination
-          if ($config -match 'fomod_destination\s*=\s*"([^"]+)"') {
-            $fomodDest = $matches[1]
-          } else {
-            $fomodDest = $pluginPath
-          }
-
-          # Parse architecture (default x64)
+          # Defaults
           $arch = "x64"
           $rustTarget = "x86_64-pc-windows-msvc"
-          if ($config -match 'arch\s*=\s*"x86"') {
-            $arch = "Win32"
-            $rustTarget = "i686-pc-windows-msvc"
+          $pluginPath = "plugins"
+          $scriptExtender = "Unknown"
+
+          if (Test-Path $nexusPath) {
+            $config = Get-Content $nexusPath -Raw
+
+            if ($config -match 'arch\s*=\s*"x86"') {
+              $arch = "Win32"
+              $rustTarget = "i686-pc-windows-msvc"
+            }
+
+            if ($config -match 'plugin_path\s*=\s*"([^"]+)"') {
+              $pluginPath = $matches[1]
+            }
+
+            if ($config -match 'script_extender\s*=\s*"([^"]+)"') {
+              $scriptExtender = $matches[1]
+            }
           }
 
-          echo "build_type=$buildType" >> $env:GITHUB_OUTPUT
-          echo "output=$output" >> $env:GITHUB_OUTPUT
-          echo "script_extender=$scriptExtender" >> $env:GITHUB_OUTPUT
-          echo "plugin_path=$pluginPath" >> $env:GITHUB_OUTPUT
-          echo "config_path=$configPath" >> $env:GITHUB_OUTPUT
-          echo "fomod_destination=$fomodDest" >> $env:GITHUB_OUTPUT
           echo "arch=$arch" >> $env:GITHUB_OUTPUT
           echo "rust_target=$rustTarget" >> $env:GITHUB_OUTPUT
+          echo "plugin_path=$pluginPath" >> $env:GITHUB_OUTPUT
+          echo "script_extender=$scriptExtender" >> $env:GITHUB_OUTPUT
 
-          echo "Build type: $buildType"
-          echo "Output: $output"
-          echo "Script extender: $scriptExtender"
-          echo "Plugin path: $pluginPath"
-          echo "Architecture: $arch ($rustTarget)"
+      - name: Build
+        run: |
+          cargo build -p ctd-${{ needs.parse-tag.outputs.mod_name }} --release --target ${{ steps.config.outputs.rust_target }}
 
-      # Pure Rust build
-      - name: Build (Cargo)
-        if: steps.config.outputs.build_type == 'cargo'
-        run: cargo build -p ctd-${{ matrix.mod }} --release
-
-      # CMake hybrid build
-      - name: Build Rust (CMake project)
-        if: steps.config.outputs.build_type == 'cmake'
-        working-directory: mods/${{ matrix.mod }}
-        run: cargo build --release --target ${{ steps.config.outputs.rust_target }} --target-dir build/rust-build
-
-      - name: Configure CMake
-        if: steps.config.outputs.build_type == 'cmake'
-        working-directory: mods/${{ matrix.mod }}
-        run: cmake -B build -G "Visual Studio 17 2022" -A ${{ steps.config.outputs.arch }}
-
-      - name: Build (CMake)
-        if: steps.config.outputs.build_type == 'cmake'
-        working-directory: mods/${{ matrix.mod }}
-        run: cmake --build build --config Release
-
-      # Package for Nexus
-      - name: Package for Nexus
+      - name: Package
         shell: pwsh
         run: |
-          $mod = "${{ matrix.mod }}"
-          $version = "${{ github.ref_name }}"
-          $buildType = "${{ steps.config.outputs.build_type }}"
-          $output = "${{ steps.config.outputs.output }}"
-          $scriptExtender = "${{ steps.config.outputs.script_extender }}"
+          $mod = "${{ needs.parse-tag.outputs.mod_name }}"
+          $version = "${{ needs.parse-tag.outputs.version }}"
+          $target = "${{ steps.config.outputs.rust_target }}"
           $pluginPath = "${{ steps.config.outputs.plugin_path }}"
-          $configPath = "${{ steps.config.outputs.config_path }}"
-          $fomodDest = "${{ steps.config.outputs.fomod_destination }}"
+          $scriptExtender = "${{ steps.config.outputs.script_extender }}"
 
-          # Determine DLL location based on build type
-          if ($buildType -eq "cargo") {
-            $dllPath = "target/release/${output}.dll"
-          } else {
-            $dllPath = "mods/$mod/build/Release/${output}.dll"
+          # Find the DLL
+          $dllName = "ctd_$mod".Replace("-", "_")
+          $dllPath = "target/$target/release/$dllName.dll"
+
+          if (-not (Test-Path $dllPath)) {
+            # Try alternate naming
+            $dllPath = "target/$target/release/ctd-$mod.dll"
           }
 
           if (-not (Test-Path $dllPath)) {
-            Write-Host "DLL not found at $dllPath, skipping package"
-            exit 0
+            Write-Error "DLL not found"
+            exit 1
           }
 
-          $distDir = "dist/$mod-nexus"
-          New-Item -ItemType Directory -Force -Path "dist"
+          # Create package structure
+          $distDir = "dist/ctd-$mod"
           New-Item -ItemType Directory -Force -Path "$distDir/$pluginPath"
-
-          # Copy DLL
-          Copy-Item $dllPath "$distDir/$pluginPath/"
-
-          # Create config file
-          $configContent = "# CTD (Crash to Desktop Reporter) Configuration`n"
-          $configContent += "[api]`n"
-          $configContent += "url = `"https://ctd.ezmode.games`"`n"
-          $configContent += "crashes_path = `"/crashes`"`n"
-          $configContent += "timeout_secs = 30`n"
-          Set-Content -Path "$distDir/$configPath/ctd.toml" -Value $configContent -Encoding UTF8
-
-          # Create FOMOD
           New-Item -ItemType Directory -Force -Path "$distDir/fomod"
 
-          $infoXml = @"
+          # Copy DLL
+          Copy-Item $dllPath "$distDir/$pluginPath/ctd-$mod.dll"
+
+          # Create config
+          @"
+          # CTD (Crash to Desktop Reporter) Configuration
+          [api]
+          url = "https://ctd.ezmode.games"
+          "@ | Set-Content "$distDir/$pluginPath/ctd.toml" -Encoding UTF8
+
+          # FOMOD info.xml
+          @"
           <?xml version="1.0" encoding="UTF-8"?>
           <fomod>
-            <Name>CTD - Crash to Desktop Reporter</Name>
+            <Name>CTD - Crash Reporter ($mod)</Name>
             <Author>ezmode.games</Author>
             <Version>$version</Version>
             <Website>https://github.com/ezmode-games/ctd</Website>
           </fomod>
-          "@
-          Set-Content -Path "$distDir/fomod/info.xml" -Value $infoXml.Trim() -Encoding UTF8
+          "@ | Set-Content "$distDir/fomod/info.xml" -Encoding UTF8
 
-          # Get the root folder name for FOMOD source
+          # FOMOD ModuleConfig.xml
           $rootFolder = $pluginPath.Split("/")[0]
-          $moduleXml = @"
+          @"
           <?xml version="1.0" encoding="UTF-8"?>
           <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <moduleName>CTD</moduleName>
+            <moduleName>CTD - $mod</moduleName>
             <requiredInstallFiles>
-              <folder source="$rootFolder" destination="$fomodDest"/>
+              <folder source="$rootFolder" destination="$rootFolder"/>
             </requiredInstallFiles>
           </config>
-          "@
-          Set-Content -Path "$distDir/fomod/ModuleConfig.xml" -Value $moduleXml.Trim() -Encoding UTF8
+          "@ | Set-Content "$distDir/fomod/ModuleConfig.xml" -Encoding UTF8
 
-          # Create README
-          $readme = "CTD - Crash to Desktop Reporter`nRequires $scriptExtender`nhttps://github.com/ezmode-games/ctd"
-          Set-Content -Path "$distDir/README.txt" -Value $readme -Encoding UTF8
+          # README
+          @"
+          CTD - Crash to Desktop Reporter
+          ================================
+          Game: $mod
+          Version: $version
+          Requires: $scriptExtender
 
-          # Create archive
-          $modTitle = (Get-Culture).TextInfo.ToTitleCase($mod)
-          Compress-Archive -Path "$distDir/*" -DestinationPath "dist/CTD-$modTitle-$version.zip"
-          Write-Host "Created dist/CTD-$modTitle-$version.zip"
+          https://github.com/ezmode-games/ctd
+          "@ | Set-Content "$distDir/README.txt" -Encoding UTF8
+
+          # Create zip
+          $zipName = "ctd-$mod-v$version.zip"
+          Compress-Archive -Path "$distDir/*" -DestinationPath "dist/$zipName"
+          Write-Host "Created dist/$zipName"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.mod }}-release
+          name: release-${{ needs.parse-tag.outputs.mod_name }}
           path: dist/*.zip
-          if-no-files-found: warn
 
-  create-release:
+  release:
     name: Create Release
-    needs: build-release
+    needs: [parse-tag, build]
+    if: always() && needs.parse-tag.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        if: needs.build.result == 'success'
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
-          pattern: "*-release"
-          merge-multiple: true
+          name: release-${{ needs.parse-tag.outputs.mod_name }}
+          path: artifacts/
 
-      - name: Upload to release
+      - name: Get mod info
+        id: info
+        run: |
+          MOD="${{ needs.parse-tag.outputs.mod_name }}"
+
+          # Try to get description
+          DESC=""
+          if [ -f "mods/$MOD/nexus.toml" ]; then
+            DESC=$(grep -oP 'description\s*=\s*"\K[^"]+' "mods/$MOD/nexus.toml" 2>/dev/null || true)
+          fi
+          if [ -z "$DESC" ] && [ -f "mods/$MOD/Cargo.toml" ]; then
+            DESC=$(grep -oP 'description\s*=\s*"\K[^"]+' "mods/$MOD/Cargo.toml" 2>/dev/null || true)
+          fi
+
+          echo "description=${DESC:-CTD crash reporter for $MOD}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          name: ctd-${{ needs.parse-tag.outputs.mod_name }} v${{ needs.parse-tag.outputs.version }}
+          body: |
+            ## ${{ steps.info.outputs.description }}
+
+            **Mod:** ctd-${{ needs.parse-tag.outputs.mod_name }}
+            **Version:** ${{ needs.parse-tag.outputs.version }}
+
+            ${{ needs.parse-tag.outputs.build_type == 'cargo' && '### Installation
+            1. Download the zip file
+            2. Extract to your game mod directory (or use your mod manager)
+            3. Enable the mod' || '### Note
+            This mod requires manual build. Binary will be uploaded separately.
+
+            Build locally with:
+            ```
+            cd mods/${{ needs.parse-tag.outputs.mod_name }}
+            cmake -B build
+            cmake --build build --config Release
+            ```' }}
           files: artifacts/*.zip
+          draft: ${{ needs.parse-tag.outputs.build_type == 'cmake' }}
           generate_release_notes: true
