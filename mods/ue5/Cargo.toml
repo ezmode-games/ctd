@@ -31,6 +31,9 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 
+# Directory scanning
+walkdir = "2"
+
 [build-dependencies]
 cxx-build = "1.0"
 
@@ -38,7 +41,8 @@ cxx-build = "1.0"
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_System_Diagnostics_Debug",
-    "Win32_System_Threading",
+    "Win32_System_LibraryLoader",
     "Win32_System_Memory",
     "Win32_System_SystemInformation",
+    "Win32_System_Threading",
 ] }
