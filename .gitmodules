@@ -1,3 +1,6 @@
 [submodule "mods/oblivion-remastered/RE-UE4SS"]
 	path = mods/oblivion-remastered/RE-UE4SS
 	url = https://github.com/UE4SS-RE/RE-UE4SS.git
+[submodule "mods/elden-ring/RE-UE4SS"]
+	path = mods/elden-ring/RE-UE4SS
+	url = https://github.com/UE4SS-RE/RE-UE4SS.git

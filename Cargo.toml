@@ -1,7 +1,12 @@
 [workspace]
 resolver = "2"
 members = ["lib/ctd-core", "mods/cyberpunk", "mods/fallout4", "mods/skyrim", "mods/ue5"]
-exclude = ["mods/oblivion-remastered/build", "mods/oblivion-remastered/RE-UE4SS"]
+exclude = [
+    "mods/oblivion-remastered/build",
+    "mods/oblivion-remastered/RE-UE4SS",
+    "mods/elden-ring/build",
+    "mods/elden-ring/RE-UE4SS",
+]
 
 [workspace.package]
 version = "0.1.0"
