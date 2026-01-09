@@ -22,9 +22,11 @@ pub enum VersionError {
     ParseError,
 }
 
-/// Extract version string from a Windows PE file (DLL/EXE).
+/// Extract the file version string from a Windows PE file (DLL/EXE).
 ///
-/// Returns the file version in the format "major.minor.build.revision".
+/// Returns the file version (not product version) in the format "major.minor.build.revision".
+/// This extracts from the `dwFileVersionMS`/`dwFileVersionLS` fields of `VS_FIXEDFILEINFO`,
+/// which represents the version of the individual file rather than the product suite.
 ///
 /// # Arguments
 ///
@@ -117,13 +119,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_system_dll_has_version() {
+    fn test_extract_version_from_system_dll() {
         let path = Path::new("C:\\Windows\\System32\\kernel32.dll");
         let version = get_dll_version(path).unwrap();
 
-        assert!(version.contains('.'));
+        // Version format is always major.minor.build.revision
         let parts: Vec<&str> = version.split('.').collect();
-        assert!(parts.len() >= 2);
+        assert_eq!(parts.len(), 4);
+        // All parts should be valid numbers
+        for part in &parts {
+            assert!(part.parse::<u32>().is_ok());
+        }
     }
 
     #[test]

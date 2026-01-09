@@ -1,11 +1,25 @@
+//! Fast file fingerprinting for mod identification.
+//!
+//! This module provides efficient file hashing for identifying mods without
+//! reading entire files. It uses a partial hash approach (first 64KB + file size)
+//! to generate unique fingerprints quickly, making it suitable for scanning
+//! large mod directories.
+//!
+//! The partial hash approach is a tradeoff: it's much faster than hashing
+//! entire files (especially for large BSA/BA2 archives), but two files with
+//! identical first 64KB and size would produce the same hash. In practice,
+//! this is extremely rare for mod files.
+
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use thiserror::Error;
 
+/// Errors that can occur when computing file hashes.
 #[derive(Error, Debug)]
 pub enum HashError {
+    /// Failed to open or read the file.
     #[error("Failed to open file: {0}")]
     IoError(#[from] std::io::Error),
 }
