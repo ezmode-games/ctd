@@ -4,7 +4,7 @@
 
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("skyrim", "fallout4", "oblivion-remastered")]
+    [ValidateSet("skyrim", "fallout4", "fallout3", "newvegas", "oblivion-remastered")]
     [string]$Mod
 )
 
