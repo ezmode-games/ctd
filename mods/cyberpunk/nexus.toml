@@ -1,6 +1,10 @@
 # CTD Nexus Packaging Configuration
 # This file defines how to package the mod for Nexus Mods
 
+[nexus]
+game_slug = "cyberpunk2077"
+# mod_id = 12345  # uncomment when published
+
 [mod]
 name = "CTD - Crash to Desktop Reporter"
 author = "ezmode.games"
