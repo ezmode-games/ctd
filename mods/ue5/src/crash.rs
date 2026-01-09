@@ -57,6 +57,7 @@ pub fn remove_handler() {
 
 /// Handle a crash event
 #[cfg(windows)]
+#[allow(deprecated)]
 fn handle_crash(crash_context: &crash_handler::CrashContext) {
     use crate::{ffi, game_info};
 
@@ -111,6 +112,7 @@ fn handle_crash(crash_context: &crash_handler::CrashContext) {
 
 /// Build LoadOrder from FFI plugin info
 #[cfg(windows)]
+#[allow(deprecated)]
 fn build_load_order(mods: Vec<crate::ffi::PluginInfo>) -> LoadOrder {
     use ctd_core::load_order::LoadOrderEntry;
 

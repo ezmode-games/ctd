@@ -15,7 +15,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use ctd_core::load_order::{LoadOrder, LoadOrderEntry};
+use ctd_core::file_hash::compute_file_hash;
+use ctd_core::load_order::{ModEntry, ModList};
+use ctd_core::version::get_dll_version;
 use thiserror::Error;
 use tracing::{debug, warn};
 use walkdir::WalkDir;
@@ -80,7 +82,15 @@ const MOD_PATHS: &[(&str, ModType)] = &[
 ];
 
 /// Cached mod list from startup scan.
-static CACHED_MODS: OnceLock<LoadOrder> = OnceLock::new();
+static CACHED_MODS: OnceLock<ModList> = OnceLock::new();
+
+/// Parse REDmod info.json for version.
+fn get_redmod_version(mod_dir: &Path) -> Option<String> {
+    let info_path = mod_dir.join("info.json");
+    let content = std::fs::read_to_string(info_path).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&content).ok()?;
+    json["version"].as_str().map(String::from)
+}
 
 /// Scans all mod locations and caches the result.
 ///
@@ -109,21 +119,21 @@ pub fn scan_and_cache() -> Result<usize> {
 /// # Panics
 ///
 /// Panics if `scan_and_cache()` was not called first.
-pub fn get_cached() -> &'static LoadOrder {
+pub fn get_cached() -> &'static ModList {
     CACHED_MODS
         .get()
         .expect("Mods not scanned yet - call scan_and_cache() first")
 }
 
 /// Returns a clone of the cached mod list, or an empty list if not scanned.
-pub fn get_cached_or_empty() -> LoadOrder {
+pub fn get_cached_or_empty() -> ModList {
     CACHED_MODS.get().cloned().unwrap_or_default()
 }
 
-/// Scans all mod locations and returns a LoadOrder.
-fn scan_mods() -> Result<LoadOrder> {
+/// Scans all mod locations and returns a ModList with fingerprints.
+fn scan_mods() -> Result<ModList> {
     let game_dir = get_game_directory()?;
-    let mut entries = Vec::new();
+    let mut list = ModList::new();
     let mut index = 0u32;
 
     debug!("Scanning mods in game directory: {:?}", game_dir);
@@ -136,52 +146,63 @@ fn scan_mods() -> Result<LoadOrder> {
             continue;
         }
 
-        let count_before = entries.len();
+        let count_before = list.len();
 
         match mod_type {
             ModType::Archive => {
-                scan_archive_mods(&full_path, &mut entries, &mut index);
+                scan_archive_mods(&full_path, &mut list, &mut index);
             }
             ModType::RedMod => {
-                scan_redmod_mods(&full_path, &mut entries, &mut index);
+                scan_redmod_mods(&full_path, &mut list, &mut index);
             }
             ModType::Red4ext => {
-                scan_red4ext_mods(&full_path, &mut entries, &mut index);
+                scan_red4ext_mods(&full_path, &mut list, &mut index);
             }
             ModType::Cet => {
-                scan_cet_mods(&full_path, &mut entries, &mut index);
+                scan_cet_mods(&full_path, &mut list, &mut index);
             }
             ModType::Redscript => {
-                scan_redscript_mods(&full_path, &mut entries, &mut index);
+                scan_redscript_mods(&full_path, &mut list, &mut index);
             }
             ModType::TweakXL => {
-                scan_tweakxl_mods(&full_path, &mut entries, &mut index);
+                scan_tweakxl_mods(&full_path, &mut list, &mut index);
             }
         }
 
-        let count_found = entries.len() - count_before;
+        let count_found = list.len() - count_before;
         if count_found > 0 {
             debug!("Found {} {:?} mods in {:?}", count_found, mod_type, path);
         }
     }
 
-    Ok(LoadOrder::from_entries(entries))
+    Ok(list)
 }
 
 /// Scans for Archive mods (`.archive` files).
-fn scan_archive_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
+fn scan_archive_mods(path: &Path, list: &mut ModList, index: &mut u32) {
     for entry in WalkDir::new(path).max_depth(1).into_iter().flatten() {
         let file_path = entry.path();
         if file_path.extension().is_some_and(|ext| ext == "archive") {
             let name = entry.file_name().to_string_lossy().into_owned();
-            entries.push(LoadOrderEntry::full(name, true, *index));
+
+            // Compute hash and size
+            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+                warn!("Failed to hash archive {}: {}", file_path.display(), e);
+                ("0000000000000000".to_string(), 0)
+            });
+
+            let mod_entry = ModEntry::new(name, hash, size)
+                .with_index(*index)
+                .with_enabled(true);
+
+            list.push(mod_entry);
             *index += 1;
         }
     }
 }
 
 /// Scans for REDmod mods (directories with `info.json`).
-fn scan_redmod_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
+fn scan_redmod_mods(path: &Path, list: &mut ModList, index: &mut u32) {
     // REDmod mods are directories containing info.json
     for entry in WalkDir::new(path).max_depth(2).into_iter().flatten() {
         let file_path = entry.path();
@@ -194,14 +215,36 @@ fn scan_redmod_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut 
                 ModType::RedMod.prefix(),
                 mod_name.to_string_lossy()
             );
-            entries.push(LoadOrderEntry::full(name, true, *index));
+
+            // Compute hash from info.json file
+            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+                warn!(
+                    "Failed to hash REDmod info.json {}: {}",
+                    file_path.display(),
+                    e
+                );
+                ("0000000000000000".to_string(), 0)
+            });
+
+            // Extract version from info.json
+            let version = get_redmod_version(mod_dir);
+
+            let mut mod_entry = ModEntry::new(name, hash, size)
+                .with_index(*index)
+                .with_enabled(true);
+
+            if let Some(v) = version {
+                mod_entry = mod_entry.with_version(v);
+            }
+
+            list.push(mod_entry);
             *index += 1;
         }
     }
 }
 
 /// Scans for RED4ext plugins (`.dll` files).
-fn scan_red4ext_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
+fn scan_red4ext_mods(path: &Path, list: &mut ModList, index: &mut u32) {
     // RED4ext plugins are DLLs, typically in subdirectories
     for entry in WalkDir::new(path).max_depth(2).into_iter().flatten() {
         let file_path = entry.path();
@@ -213,29 +256,59 @@ fn scan_red4ext_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut
             }
 
             let name = format!("{} {}", ModType::Red4ext.prefix(), filename);
-            entries.push(LoadOrderEntry::full(name, true, *index));
+
+            // Compute hash and size
+            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+                warn!("Failed to hash RED4ext DLL {}: {}", file_path.display(), e);
+                ("0000000000000000".to_string(), 0)
+            });
+
+            // Extract DLL version
+            let version = get_dll_version(file_path).ok();
+
+            let mut mod_entry = ModEntry::new(name, hash, size)
+                .with_index(*index)
+                .with_enabled(true);
+
+            if let Some(v) = version {
+                mod_entry = mod_entry.with_version(v);
+            }
+
+            list.push(mod_entry);
             *index += 1;
         }
     }
 }
 
 /// Scans for CET mods (directories with `init.lua`).
-fn scan_cet_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
+fn scan_cet_mods(path: &Path, list: &mut ModList, index: &mut u32) {
     // CET mods are directories containing init.lua
     for entry in WalkDir::new(path).max_depth(2).into_iter().flatten() {
+        let file_path = entry.path();
         if entry.file_name() == "init.lua"
-            && let Some(mod_dir) = entry.path().parent()
+            && let Some(mod_dir) = file_path.parent()
             && let Some(mod_name) = mod_dir.file_name()
         {
             let name = format!("{} {}", ModType::Cet.prefix(), mod_name.to_string_lossy());
-            entries.push(LoadOrderEntry::full(name, true, *index));
+
+            // Compute hash from init.lua
+            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+                warn!("Failed to hash CET init.lua {}: {}", file_path.display(), e);
+                ("0000000000000000".to_string(), 0)
+            });
+
+            let mod_entry = ModEntry::new(name, hash, size)
+                .with_index(*index)
+                .with_enabled(true);
+
+            list.push(mod_entry);
             *index += 1;
         }
     }
 }
 
 /// Scans for Redscript mods (`.reds` files).
-fn scan_redscript_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
+fn scan_redscript_mods(path: &Path, list: &mut ModList, index: &mut u32) {
     // Collect unique script directories/files
     let mut seen_mods = std::collections::HashSet::new();
 
@@ -260,7 +333,18 @@ fn scan_redscript_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &m
             // Only add each mod directory once
             if seen_mods.insert(mod_name.clone()) {
                 let name = format!("{} {}", ModType::Redscript.prefix(), mod_name);
-                entries.push(LoadOrderEntry::full(name, true, *index));
+
+                // Compute hash from the .reds file
+                let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+                    warn!("Failed to hash Redscript {}: {}", file_path.display(), e);
+                    ("0000000000000000".to_string(), 0)
+                });
+
+                let mod_entry = ModEntry::new(name, hash, size)
+                    .with_index(*index)
+                    .with_enabled(true);
+
+                list.push(mod_entry);
                 *index += 1;
             }
         }
@@ -268,7 +352,7 @@ fn scan_redscript_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &m
 }
 
 /// Scans for TweakXL mods (`.yaml`/`.yml` files).
-fn scan_tweakxl_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
+fn scan_tweakxl_mods(path: &Path, list: &mut ModList, index: &mut u32) {
     // Collect unique tweak directories/files
     let mut seen_mods = std::collections::HashSet::new();
 
@@ -295,7 +379,18 @@ fn scan_tweakxl_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut
             // Only add each mod directory once
             if seen_mods.insert(mod_name.clone()) {
                 let name = format!("{} {}", ModType::TweakXL.prefix(), mod_name);
-                entries.push(LoadOrderEntry::full(name, true, *index));
+
+                // Compute hash from the yaml file
+                let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+                    warn!("Failed to hash TweakXL {}: {}", file_path.display(), e);
+                    ("0000000000000000".to_string(), 0)
+                });
+
+                let mod_entry = ModEntry::new(name, hash, size)
+                    .with_index(*index)
+                    .with_enabled(true);
+
+                list.push(mod_entry);
                 *index += 1;
             }
         }
@@ -393,7 +488,44 @@ mod tests {
         // Should return empty if not scanned
         // Note: This test may fail if run after scan_and_cache is called elsewhere
         let result = get_cached_or_empty();
-        // Just verify it doesn't panic and returns a valid LoadOrder
+        // Just verify it doesn't panic and returns a valid ModList
         let _ = result.len();
+    }
+
+    #[test]
+    fn test_get_redmod_version_parses_json() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let info_path = temp_dir.path().join("info.json");
+        std::fs::write(&info_path, r#"{"name": "TestMod", "version": "1.2.3"}"#).unwrap();
+
+        let version = get_redmod_version(temp_dir.path());
+        assert_eq!(version, Some("1.2.3".to_string()));
+    }
+
+    #[test]
+    fn test_get_redmod_version_missing_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let version = get_redmod_version(temp_dir.path());
+        assert_eq!(version, None);
+    }
+
+    #[test]
+    fn test_get_redmod_version_invalid_json() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let info_path = temp_dir.path().join("info.json");
+        std::fs::write(&info_path, "not json").unwrap();
+
+        let version = get_redmod_version(temp_dir.path());
+        assert_eq!(version, None);
+    }
+
+    #[test]
+    fn test_get_redmod_version_missing_version_field() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let info_path = temp_dir.path().join("info.json");
+        std::fs::write(&info_path, r#"{"name": "TestMod"}"#).unwrap();
+
+        let version = get_redmod_version(temp_dir.path());
+        assert_eq!(version, None);
     }
 }

@@ -96,10 +96,10 @@ fn submit_sync(crash_data: CrashData) -> Result<String> {
     );
 
     // Get cached mods (or empty if not scanned)
-    let load_order = mod_scanner::get_cached_or_empty();
+    let mod_list = mod_scanner::get_cached_or_empty();
 
     // Build the crash report
-    let report = build_report(&crash_data, load_order)?;
+    let report = build_report(&crash_data, mod_list)?;
 
     // Create a single-threaded runtime for the API call
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -125,7 +125,7 @@ fn submit_sync(crash_data: CrashData) -> Result<String> {
 /// Builds a crash report from crash data.
 fn build_report(
     crash_data: &CrashData,
-    load_order: ctd_core::load_order::LoadOrder,
+    mod_list: ctd_core::load_order::ModList,
 ) -> Result<CreateCrashReport> {
     let mut builder = CreateCrashReport::builder()
         .game_id(GAME_ID)
@@ -133,7 +133,7 @@ fn build_report(
         .stack_trace(&crash_data.stack_trace)
         .exception_code(format!("0x{:08X}", crash_data.exception_code))
         .exception_address(format!("0x{:016X}", crash_data.exception_address))
-        .load_order(load_order)
+        .load_order_v2(mod_list)
         .crashed_now();
 
     // Add faulting module if available
@@ -295,7 +295,7 @@ fn get_os_version() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ctd_core::load_order::LoadOrder;
+    use ctd_core::load_order::ModList;
 
     #[test]
     fn test_build_report() {
@@ -306,8 +306,8 @@ mod tests {
             faulting_module: Some("test.dll".to_string()),
         };
 
-        let load_order = LoadOrder::new();
-        let result = build_report(&crash_data, load_order);
+        let mod_list = ModList::new();
+        let result = build_report(&crash_data, mod_list);
 
         assert!(result.is_ok());
         let report = result.unwrap();
