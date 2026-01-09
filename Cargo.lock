@@ -247,7 +247,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctd-fallout3"
+version = "0.1.0"
+dependencies = [
+ "ctd-core",
+ "cxx",
+ "cxx-build",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "ctd-fallout4"
+version = "0.1.0"
+dependencies = [
+ "ctd-core",
+ "cxx",
+ "cxx-build",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "ctd-newvegas"
 version = "0.1.0"
 dependencies = [
  "ctd-core",

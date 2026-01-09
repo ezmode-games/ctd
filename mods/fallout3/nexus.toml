@@ -1,0 +1,25 @@
+# CTD Nexus Packaging Configuration - Fallout 3
+
+[nexus]
+game_slug = "fallout3"
+# mod_id = 12345  # uncomment when published
+
+[mod]
+name = "CTD - Crash to Desktop Reporter"
+author = "ezmode.games"
+
+[build]
+# CMake + Rust hybrid build
+type = "cmake"
+# 32-bit (Fallout 3 is a 32-bit game)
+arch = "x86"
+# Output DLL name (without .dll extension)
+output = "ctd-fallout3"
+
+[package]
+# Script extender this mod uses
+script_extender = "FOSE"
+# Plugin directory structure within the archive
+plugin_path = "FOSE/Plugins"
+# Where to put config file
+config_path = "FOSE/Plugins"

@@ -3,7 +3,7 @@
 fn main() {
     // Generate CXX bridge code
     cxx_build::bridge("src/lib.rs")
-        .std("c++20")
+        .std("c++17")
         .include(".") // Include current dir so cpp/bridge.hpp is found
         .compile("ctd-newvegas-bridge");
 

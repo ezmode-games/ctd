@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["lib/ctd-core", "mods/cyberpunk", "mods/fallout4", "mods/skyrim", "mods/ue5"]
+members = ["lib/ctd-core", "mods/cyberpunk", "mods/fallout3", "mods/fallout4", "mods/newvegas", "mods/skyrim", "mods/ue5"]
 exclude = [
     "mods/oblivion-remastered/build",
     "mods/oblivion-remastered/RE-UE4SS",
