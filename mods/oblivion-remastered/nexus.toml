@@ -1,5 +1,9 @@
 # Nexus Mods metadata for CTD Crash Reporter - Oblivion Remastered
 
+[nexus]
+game_slug = "oblivionremastered"
+# mod_id = 12345  # uncomment when published
+
 [mod]
 name = "CTD Crash Reporter"
 version = "0.1.0"
