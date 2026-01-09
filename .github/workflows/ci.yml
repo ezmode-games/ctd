@@ -34,8 +34,11 @@ jobs:
       - name: Detect changed mods
         id: mods
         run: |
-          # Get pure-Cargo mods only (exclude CMake mods - built locally)
-          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | grep -v -E '^(skyrim|fallout4|oblivion-remastered)$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          # Get buildable mods (exclude CMake/UE4SS mods and incomplete scaffolding)
+          # skyrim, fallout4: CMake hybrid mods - built locally
+          # oblivion-remastered, elden-ring: UE4SS mods - require local submodule setup
+          # fallout3, newvegas: incomplete scaffolding - missing C++ bridge files
+          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | grep -v -E '^(skyrim|fallout4|oblivion-remastered|elden-ring|fallout3|newvegas)$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
 
           # Get changed files in this PR/push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
