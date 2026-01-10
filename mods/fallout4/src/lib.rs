@@ -5,8 +5,8 @@
 //! handles crash processing and API submission.
 
 mod crash;
+mod fingerprint;
 
-use ctd_core::load_order::{LoadOrder, LoadOrderEntry};
 use tracing::info;
 
 /// CXX bridge between C++ and Rust.
@@ -82,18 +82,4 @@ pub fn handle_crash(data: ffi::ExceptionData) {
 
     // Delegate to crash module
     crash::process_crash(data);
-}
-
-/// Convert FFI plugin info to ctd-core LoadOrder.
-pub(crate) fn build_load_order(plugins: Vec<ffi::PluginInfo>) -> LoadOrder {
-    let mut load_order = LoadOrder::new();
-
-    for (index, plugin_info) in plugins.into_iter().enumerate() {
-        // Create entry with full details
-        // Note: is_light flag is informational but not stored in the simple LoadOrderEntry
-        let entry = LoadOrderEntry::full(plugin_info.name, true, index as u32);
-        load_order.push(entry);
-    }
-
-    load_order
 }
