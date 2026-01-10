@@ -83,4 +83,3 @@ pub fn handle_crash(data: ffi::ExceptionData) {
     // Delegate to crash module
     crash::process_crash(data);
 }
-

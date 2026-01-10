@@ -4,9 +4,9 @@ use ctd_core::api_client::ApiClient;
 use ctd_core::crash_report::CreateCrashReport;
 use tracing::{error, info};
 
+use crate::ffi;
 use crate::ffi::ExceptionData;
 use crate::fingerprint::build_mod_list;
-use crate::ffi;
 
 /// Game ID for Fallout 4.
 const GAME_ID: &str = "fallout4";
