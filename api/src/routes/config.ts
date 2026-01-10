@@ -1,9 +1,82 @@
-import { Hono } from 'hono';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
 import { db } from '@/db/index';
 import { hashApiKey, isValidApiKeyFormat } from '@/lib/api-key';
 
-const config = new Hono();
+// Schemas
+const ConfigQuerySchema = z.object({
+	key: z.string().openapi({
+		description: 'Your API key',
+		example: 'ctd_a8Kj2mNp4qRs6tUv8wXy0zB3dF5gH7jL',
+	}),
+	format: z
+		.enum(['toml', 'json'])
+		.default('toml')
+		.openapi({ description: 'Output format' }),
+});
+
+const ConfigJsonSchema = z
+	.object({
+		server_url: z.string(),
+		api_key: z.string(),
+	})
+	.openapi('ConfigJson');
+
+const ErrorSchema = z
+	.object({
+		error: z.object({
+			code: z.string(),
+			message: z.string(),
+		}),
+	})
+	.openapi('Error');
+
+// Routes
+const getConfigRoute = createRoute({
+	method: 'get',
+	path: '/',
+	tags: ['Config'],
+	summary: 'Download config file',
+	description:
+		'Download a pre-configured ctd.toml file with your API key embedded. This file should be placed in your game directory.',
+	request: {
+		query: ConfigQuerySchema,
+	},
+	responses: {
+		200: {
+			content: {
+				'application/toml': {
+					schema: z
+						.string()
+						.openapi({
+							example:
+								'[api]\nurl = "https://your-server.example.com"\napi_key = "ctd_..."',
+						}),
+				},
+				'application/json': {
+					schema: ConfigJsonSchema,
+				},
+			},
+			description: 'Configuration file',
+		},
+		400: {
+			content: {
+				'application/json': {
+					schema: ErrorSchema,
+				},
+			},
+			description: 'Bad request',
+		},
+		401: {
+			content: {
+				'application/json': {
+					schema: ErrorSchema,
+				},
+			},
+			description: 'Invalid or expired API key',
+		},
+	},
+});
 
 /**
  * Escape a string for TOML basic string format.
@@ -18,34 +91,11 @@ function escapeTomlString(str: string): string {
 		.replace(/\t/g, '\\t');
 }
 
-// GET /config - Download configuration file
-// Query params:
-//   key: API key (required)
-//   format: 'toml' | 'json' (default: 'toml')
-config.get('/', async (c) => {
-	const key = c.req.query('key');
-	const rawFormat = c.req.query('format');
+// App and handlers
+const configApp = new OpenAPIHono();
 
-	// Validate format param
-	let format: 'toml' | 'json';
-	if (!rawFormat) {
-		format = 'toml';
-	} else if (rawFormat === 'toml' || rawFormat === 'json') {
-		format = rawFormat;
-	} else {
-		return c.json(
-			{ error: { code: 'BAD_REQUEST', message: 'Invalid format parameter. Use "toml" or "json"' } },
-			400,
-		);
-	}
-
-	// Validate key param exists
-	if (!key) {
-		return c.json(
-			{ error: { code: 'BAD_REQUEST', message: 'Missing key parameter' } },
-			400,
-		);
-	}
+configApp.openapi(getConfigRoute, async (c) => {
+	const { key, format } = c.req.valid('query');
 
 	// Validate key format
 	if (!isValidApiKeyFormat(key)) {
@@ -121,4 +171,4 @@ api_key = "${escapeTomlString(key)}"
 	});
 });
 
-export { config };
+export { configApp };

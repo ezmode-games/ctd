@@ -1,12 +1,13 @@
-import { Hono } from 'hono';
+import { swaggerUI } from '@hono/swagger-ui';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 
-import { apiKeys } from '@/routes/api-keys';
-import { config } from '@/routes/config';
-import { crashes } from '@/routes/crashes';
+import { apiKeysApp } from '@/routes/api-keys';
+import { configApp } from '@/routes/config';
+import { crashesApp } from '@/routes/crashes';
 
-const app = new Hono();
+const app = new OpenAPIHono();
 
 // Middleware
 app.use('*', cors());
@@ -17,10 +18,23 @@ app.get('/health', (c) => {
 	return c.json({ status: 'ok', version: '0.1.0' });
 });
 
-// Routes
-app.route('/api-keys', apiKeys);
-app.route('/config', config);
-app.route('/crashes', crashes);
+// Mount route apps
+app.route('/api-keys', apiKeysApp);
+app.route('/config', configApp);
+app.route('/crashes', crashesApp);
+
+// OpenAPI documentation
+app.doc('/doc', {
+	openapi: '3.0.0',
+	info: {
+		title: 'CTD API',
+		version: '1.0.0',
+		description: 'Crash to Desktop Reporter - Self-hosted API',
+	},
+});
+
+// Swagger UI
+app.get('/docs', swaggerUI({ url: '/doc' }));
 
 // Error handler
 app.onError((err, c) => {
