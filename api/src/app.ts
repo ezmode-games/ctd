@@ -5,6 +5,7 @@ import { requestId } from 'hono/request-id';
 import { apiKeys } from '@/routes/api-keys';
 import { config } from '@/routes/config';
 import { crashes } from '@/routes/crashes';
+import { docs } from '@/routes/docs';
 
 const app = new Hono();
 
@@ -21,6 +22,7 @@ app.get('/health', (c) => {
 app.route('/api-keys', apiKeys);
 app.route('/config', config);
 app.route('/crashes', crashes);
+app.route('/docs', docs);
 
 // Error handler
 app.onError((err, c) => {
