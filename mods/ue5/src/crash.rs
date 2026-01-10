@@ -7,8 +7,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use ctd_core::api_client::ApiClient;
 use ctd_core::crash_report::CreateCrashReport;
-use ctd_core::load_order::LoadOrder;
 use tracing::{error, info};
+
+use crate::fingerprint::{get_game_directory, scan_ue4ss_mods};
 
 static HANDLER_INSTALLED: AtomicBool = AtomicBool::new(false);
 
@@ -57,9 +58,8 @@ pub fn remove_handler() {
 
 /// Handle a crash event
 #[cfg(windows)]
-#[allow(deprecated)]
 fn handle_crash(crash_context: &crash_handler::CrashContext) {
-    use crate::{ffi, game_info};
+    use crate::game_info;
 
     // Get game info
     let game_info = match game_info() {
@@ -70,9 +70,9 @@ fn handle_crash(crash_context: &crash_handler::CrashContext) {
         }
     };
 
-    // Get load order from C++ side
-    let mods = ffi::get_load_order();
-    let load_order = build_load_order(mods);
+    // Build mod list with file hashes using fingerprint module
+    let game_dir = get_game_directory().unwrap_or_default();
+    let mod_list = scan_ue4ss_mods(&game_dir);
 
     // Extract exception info
     let exception_code = format!("0x{:08X}", crash_context.exception_code);
@@ -91,7 +91,7 @@ fn handle_crash(crash_context: &crash_handler::CrashContext) {
         .stack_trace(stack_trace)
         .exception_code(exception_code)
         .os_version(get_os_version())
-        .load_order(load_order)
+        .load_order_v2(mod_list)
         .crashed_now()
         .build()
     {
@@ -108,22 +108,6 @@ fn handle_crash(crash_context: &crash_handler::CrashContext) {
             error!("Failed to submit crash report: {}", e);
         }
     });
-}
-
-/// Build LoadOrder from FFI plugin info
-#[cfg(windows)]
-#[allow(deprecated)]
-fn build_load_order(mods: Vec<crate::ffi::PluginInfo>) -> LoadOrder {
-    use ctd_core::load_order::LoadOrderEntry;
-
-    let mut load_order = LoadOrder::new();
-    for plugin in mods {
-        let mut entry = LoadOrderEntry::new(plugin.name);
-        entry.index = Some(plugin.index);
-        entry.enabled = Some(true); // If it's in the list, it's enabled
-        load_order.push(entry);
-    }
-    load_order
 }
 
 /// Submit crash report using ctd-core ApiClient (respects ctd.toml config)
