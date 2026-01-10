@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 
+import { apiKeys } from '@/routes/api-keys';
 import { crashes } from '@/routes/crashes';
 
 const app = new Hono();
@@ -16,6 +17,7 @@ app.get('/health', (c) => {
 });
 
 // Routes
+app.route('/api-keys', apiKeys);
 app.route('/crashes', crashes);
 
 // Error handler
