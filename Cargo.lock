@@ -271,6 +271,8 @@ dependencies = [
  "ctd-core",
  "minidump-writer",
  "red4ext-rs",
+ "serde_json",
+ "tempfile",
  "thiserror",
  "tokio",
  "tracing",
@@ -288,6 +290,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "windows",
 ]
 
 [[package]]
@@ -300,6 +303,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "windows",
 ]
 
 [[package]]
@@ -312,6 +316,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "windows",
 ]
 
 [[package]]
@@ -324,6 +329,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "windows",
 ]
 
 [[package]]
@@ -341,6 +347,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "walkdir",
  "windows",
 ]
 
