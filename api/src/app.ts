@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 
 import { apiKeys } from '@/routes/api-keys';
+import { config } from '@/routes/config';
 import { crashes } from '@/routes/crashes';
 
 const app = new Hono();
@@ -18,6 +19,7 @@ app.get('/health', (c) => {
 
 // Routes
 app.route('/api-keys', apiKeys);
+app.route('/config', config);
 app.route('/crashes', crashes);
 
 // Error handler
