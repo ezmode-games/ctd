@@ -51,14 +51,14 @@ $ModMeta = @{
         features = @("crash_capture")
     }
     "fallout3" = @{
-        status = "scaffolding"
-        quality = "scaffolding"
-        features = @()
+        status = "beta"
+        quality = "good"
+        features = @("crash_capture", "load_order", "mod_fingerprinting")
     }
     "newvegas" = @{
-        status = "scaffolding"
-        quality = "scaffolding"
-        features = @()
+        status = "beta"
+        quality = "good"
+        features = @("crash_capture", "load_order", "mod_fingerprinting")
     }
 }
 

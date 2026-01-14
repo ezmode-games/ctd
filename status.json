@@ -1,138 +1,146 @@
-{
-  "$schema": "https://ezmode.games/schemas/ctd-status.json",
-  "generated_at": "2026-01-14T02:37:57Z",
-  "repository": "https://github.com/ezmode-games/ctd",
-  "mods": {
-    "newvegas": {
-      "name": "CTD Crash Reporter",
-      "game": "Fallout: New Vegas",
-      "status": "scaffolding",
-      "version": "0.1.2",
-      "build_type": "cmake",
-      "quality": "scaffolding",
-      "features": [],
-      "published": {
-        "github": null,
-        "nexus": null,
-        "ezmode": null
-      }
-    },
-    "ue5": {
-      "name": "CTD Crash Reporter",
-      "game": "Unreal Engine 5 (Generic)",
-      "status": "alpha",
-      "version": "0.1.2",
-      "build_type": "cargo",
-      "quality": "experimental",
-      "features": [
-        "crash_capture",
-        "pak_scanning"
-      ],
-      "published": {
-        "github": "https://github.com/ezmode-games/ctd/releases/tag/ue5-v0.1.2",
-        "nexus": null,
-        "ezmode": null
-      }
-    },
-    "elden-ring": {
-      "name": "CTD Crash Reporter",
-      "game": "Elden Ring",
-      "status": "wip",
-      "version": null,
-      "build_type": "cmake",
-      "quality": "scaffolding",
-      "features": [
-        "crash_capture"
-      ],
-      "published": {
-        "github": null,
-        "nexus": null,
-        "ezmode": null
-      }
-    },
-    "cyberpunk": {
-      "name": "CTD Crash Reporter",
-      "game": "Cyberpunk 2077",
-      "status": "beta",
-      "version": "0.1.2",
-      "build_type": "cargo",
-      "quality": "good",
-      "features": [
-        "crash_capture",
-        "mod_scanning"
-      ],
-      "published": {
-        "github": "https://github.com/ezmode-games/ctd/releases/tag/cyberpunk-v0.1.2",
-        "nexus": null,
-        "ezmode": null
-      }
-    },
-    "oblivion-remastered": {
-      "name": "CTD Crash Reporter",
-      "game": "Oblivion Remastered",
-      "status": "alpha",
-      "version": null,
-      "build_type": "cmake",
-      "quality": "experimental",
-      "features": [
-        "crash_capture",
-        "load_order"
-      ],
-      "published": {
-        "github": null,
-        "nexus": null,
-        "ezmode": null
-      }
-    },
-    "fallout4": {
-      "name": "CTD Crash Reporter",
-      "game": "Fallout 4",
-      "status": "beta",
-      "version": "0.1.2",
-      "build_type": "cmake",
-      "quality": "good",
-      "features": [
-        "crash_capture",
-        "load_order",
-        "mod_fingerprinting"
-      ],
-      "published": {
-        "github": "https://github.com/ezmode-games/ctd/releases/tag/fallout4-v0.1.2",
-        "nexus": null,
-        "ezmode": null
-      }
-    },
-    "fallout3": {
-      "name": "CTD Crash Reporter",
-      "game": "Fallout 3",
-      "status": "scaffolding",
-      "version": "0.1.2",
-      "build_type": "cmake",
-      "quality": "scaffolding",
-      "features": [],
-      "published": {
-        "github": null,
-        "nexus": null,
-        "ezmode": null
-      }
-    },
-    "skyrim": {
-      "name": "CTD Crash Reporter",
-      "game": "The Elder Scrolls V: Skyrim",
-      "status": "beta",
-      "version": "0.1.2",
-      "build_type": "cmake",
-      "quality": "good",
-      "features": [
-        "crash_capture",
-        "load_order",
-        "mod_fingerprinting"
-      ],
-      "published": {
-        "github": "https://github.com/ezmode-games/ctd/releases/tag/skyrim-v0.1.2",
-        "nexus": null,
-        "ezmode": null
-      }
-    }
-  }
+﻿{
+    "$schema":  "https://ezmode.games/schemas/ctd-status.json",
+    "generated_at":  "2026-01-14T04:06:19Z",
+    "repository":  "https://github.com/ezmode-games/ctd",
+    "mods":  {
+                 "fallout3":  {
+                                  "name":  "CTD Crash Reporter",
+                                  "game":  "Fallout 3",
+                                  "status":  "beta",
+                                  "version":  "0.1.2",
+                                  "build_type":  "cmake",
+                                  "quality":  "good",
+                                  "features":  [
+                                                   "crash_capture",
+                                                   "load_order",
+                                                   "mod_fingerprinting"
+                                               ],
+                                  "published":  {
+                                                    "github":  "https://github.com/ezmode-games/ctd/releases/tag/fallout3-v0.1.2",
+                                                    "nexus":  null,
+                                                    "ezmode":  null
+                                                }
+                              },
+                 "ue5":  {
+                             "name":  "CTD Crash Reporter",
+                             "game":  "Unreal Engine 5 (Generic)",
+                             "status":  "alpha",
+                             "version":  "0.1.2",
+                             "build_type":  "cargo",
+                             "quality":  "experimental",
+                             "features":  [
+                                              "crash_capture",
+                                              "pak_scanning"
+                                          ],
+                             "published":  {
+                                               "github":  "https://github.com/ezmode-games/ctd/releases/tag/ue5-v0.1.2",
+                                               "nexus":  null,
+                                               "ezmode":  null
+                                           }
+                         },
+                 "skyrim":  {
+                                "name":  "CTD Crash Reporter",
+                                "game":  "The Elder Scrolls V: Skyrim",
+                                "status":  "beta",
+                                "version":  "0.1.2",
+                                "build_type":  "cmake",
+                                "quality":  "good",
+                                "features":  [
+                                                 "crash_capture",
+                                                 "load_order",
+                                                 "mod_fingerprinting"
+                                             ],
+                                "published":  {
+                                                  "github":  "https://github.com/ezmode-games/ctd/releases/tag/skyrim-v0.1.2",
+                                                  "nexus":  null,
+                                                  "ezmode":  null
+                                              }
+                            },
+                 "oblivion-remastered":  {
+                                             "name":  "CTD Crash Reporter",
+                                             "game":  "Oblivion Remastered",
+                                             "status":  "alpha",
+                                             "version":  null,
+                                             "build_type":  "cmake",
+                                             "quality":  "experimental",
+                                             "features":  [
+                                                              "crash_capture",
+                                                              "load_order"
+                                                          ],
+                                             "published":  {
+                                                               "github":  null,
+                                                               "nexus":  null,
+                                                               "ezmode":  null
+                                                           }
+                                         },
+                 "fallout4":  {
+                                  "name":  "CTD Crash Reporter",
+                                  "game":  "Fallout 4",
+                                  "status":  "beta",
+                                  "version":  "0.1.2",
+                                  "build_type":  "cmake",
+                                  "quality":  "good",
+                                  "features":  [
+                                                   "crash_capture",
+                                                   "load_order",
+                                                   "mod_fingerprinting"
+                                               ],
+                                  "published":  {
+                                                    "github":  "https://github.com/ezmode-games/ctd/releases/tag/fallout4-v0.1.2",
+                                                    "nexus":  null,
+                                                    "ezmode":  null
+                                                }
+                              },
+                 "newvegas":  {
+                                  "name":  "CTD Crash Reporter",
+                                  "game":  "Fallout: New Vegas",
+                                  "status":  "beta",
+                                  "version":  "0.1.2",
+                                  "build_type":  "cmake",
+                                  "quality":  "good",
+                                  "features":  [
+                                                   "crash_capture",
+                                                   "load_order",
+                                                   "mod_fingerprinting"
+                                               ],
+                                  "published":  {
+                                                    "github":  "https://github.com/ezmode-games/ctd/releases/tag/newvegas-v0.1.2",
+                                                    "nexus":  null,
+                                                    "ezmode":  null
+                                                }
+                              },
+                 "cyberpunk":  {
+                                   "name":  "CTD Crash Reporter",
+                                   "game":  "Cyberpunk 2077",
+                                   "status":  "beta",
+                                   "version":  "0.1.2",
+                                   "build_type":  "cargo",
+                                   "quality":  "good",
+                                   "features":  [
+                                                    "crash_capture",
+                                                    "mod_scanning"
+                                                ],
+                                   "published":  {
+                                                     "github":  "https://github.com/ezmode-games/ctd/releases/tag/cyberpunk-v0.1.2",
+                                                     "nexus":  null,
+                                                     "ezmode":  null
+                                                 }
+                               },
+                 "elden-ring":  {
+                                    "name":  "CTD Crash Reporter",
+                                    "game":  "Elden Ring",
+                                    "status":  "wip",
+                                    "version":  null,
+                                    "build_type":  "cmake",
+                                    "quality":  "scaffolding",
+                                    "features":  [
+                                                     "crash_capture"
+                                                 ],
+                                    "published":  {
+                                                      "github":  null,
+                                                      "nexus":  null,
+                                                      "ezmode":  null
+                                                  }
+                                }
+             }
 }
