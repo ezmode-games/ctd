@@ -168,11 +168,11 @@ impl SymbolResolver {
             .next()
             .map_err(|e| CtdError::Symbol(format!("Failed to iterate symbols: {}", e)))?
         {
-            if let Ok(pdb::SymbolData::Public(data)) = symbol.parse() {
-                if let Some(rva) = data.offset.to_rva(&address_map) {
-                    let name = data.name.to_string();
-                    functions.push((rva.0, name.to_string()));
-                }
+            if let Ok(pdb::SymbolData::Public(data)) = symbol.parse()
+                && let Some(rva) = data.offset.to_rva(&address_map)
+            {
+                let name = data.name.to_string();
+                functions.push((rva.0, name.to_string()));
             }
         }
 
@@ -200,19 +200,18 @@ impl SymbolResolver {
             .to_lowercase();
 
         // Try to load PDB if not already cached
-        if !self.modules.contains_key(&module_key) {
-            if let Some(pdb_path) = self.find_pdb(&module_key) {
-                if let Err(e) = self.add_pdb(&pdb_path) {
-                    debug!("Failed to load PDB for {}: {}", module_key, e);
-                }
-            }
+        if !self.modules.contains_key(&module_key)
+            && let Some(pdb_path) = self.find_pdb(&module_key)
+            && let Err(e) = self.add_pdb(&pdb_path)
+        {
+            debug!("Failed to load PDB for {}: {}", module_key, e);
         }
 
         // Look up the symbol
-        if let Some(symbols) = self.modules.get(&module_key) {
-            if let Some(func_name) = symbols.lookup(offset as u32) {
-                return ResolvedFrame::resolved(&module_name, offset, func_name, None, None);
-            }
+        if let Some(symbols) = self.modules.get(&module_key)
+            && let Some(func_name) = symbols.lookup(offset as u32)
+        {
+            return ResolvedFrame::resolved(&module_name, offset, func_name, None, None);
         }
 
         ResolvedFrame::unresolved(&module_name, offset)
