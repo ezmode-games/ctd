@@ -246,7 +246,7 @@ dependencies = [
 
 [[package]]
 name = "ctd-core"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "dirs",
  "hex",
@@ -265,7 +265,7 @@ dependencies = [
 
 [[package]]
 name = "ctd-cyberpunk"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "crash-context",
  "crash-handler",
@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "ctd-fallout3"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "ctd-core",
  "cxx",
@@ -296,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "ctd-fallout4"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "ctd-core",
  "cxx",
@@ -309,7 +309,7 @@ dependencies = [
 
 [[package]]
 name = "ctd-newvegas"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "ctd-core",
  "cxx",
@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "ctd-skyrim"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "ctd-core",
  "cxx",
@@ -335,7 +335,7 @@ dependencies = [
 
 [[package]]
 name = "ctd-ue5"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "crash-handler",
  "ctd-core",
