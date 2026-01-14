@@ -19,23 +19,37 @@ Automatic crash reporting for modded games. Captures crash context and helps ide
 ## What It Captures
 
 - Stack traces with module offsets
+- Resolved function names (when PDB available)
 - Load order at crash time
 - Mod fingerprints (file hashes)
 - Crash patterns across users
 
 ## Installation
 
-Download from [Releases](https://github.com/ezmode-games/ctd/releases) or [Nexus Mods](https://www.nexusmods.com).
+Download from [Releases](https://github.com/ezmode-games/ctd/releases) or Nexus Mods.
 
 Extract to your game's mod directory or install via Vortex/MO2.
 
 ## For Mod Creators
 
-Subscribe to crashes mentioning your mods:
+CTD helps you understand crashes affecting your users:
 
-- See crash reports where your mod is present
-- Pattern detection ("50 users crashed with mod A + mod B")
-- Export data for analysis
+- **Crash visibility** - See reports where your mod is in the load order
+- **Pattern detection** - Identify common crash signatures across users
+- **Correlation analysis** - Find which mod combinations cause issues
+- **Export data** - CSV export for your own analysis
+
+For technical details on how CTD works internally, see [Architecture](docs/architecture.md).
+
+### Providing Debug Symbols
+
+Include your `.pdb` file alongside your DLL for resolved stack traces:
+
+```
+Data/SKSE/Plugins/
+  MyMod.dll
+  MyMod.pdb      <- Users get function names in crash reports
+```
 
 ## Building
 
@@ -65,6 +79,8 @@ cd api
 pnpm install
 pnpm dev
 ```
+
+See [API Documentation](https://ctd.ezmode.games/docs) for endpoints.
 
 ## License
 

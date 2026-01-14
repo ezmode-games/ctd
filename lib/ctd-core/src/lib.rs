@@ -11,6 +11,7 @@ pub mod config;
 pub mod crash_report;
 pub mod file_hash;
 pub mod load_order;
+pub mod symbols;
 pub mod version;
 
 use thiserror::Error;
@@ -37,6 +38,10 @@ pub enum CtdError {
     /// An API request failed.
     #[error("API request failed: {0}")]
     ApiRequest(String),
+
+    /// Symbol resolution failed.
+    #[error("Symbol resolution error: {0}")]
+    Symbol(String),
 }
 
 /// A specialized Result type for CTD operations.
