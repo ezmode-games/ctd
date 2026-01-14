@@ -15,8 +15,8 @@ param(
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Tag = "$Mod-v$Version"
-$ZipName = "ctd-$Mod-v$Version.zip"
-$ZipPath = "dist/$ZipName"
+$ArchiveName = "ctd-$Mod-v$Version.7z"
+$ArchivePath = "dist/$ArchiveName"
 
 Write-Host "=== Releasing $Mod v$Version ===" -ForegroundColor Cyan
 
@@ -49,8 +49,8 @@ Write-Host "`n[2/5] Packaging..." -ForegroundColor Yellow
 & "$ScriptDir/package-mod.ps1" -Mod $Mod -Version $Version
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
-if (-not (Test-Path $ZipPath)) {
-    Write-Error "Package not found at $ZipPath"
+if (-not (Test-Path $ArchivePath)) {
+    Write-Error "Package not found at $ArchivePath"
     exit 1
 }
 
@@ -98,8 +98,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Step 5: Upload artifact
-Write-Host "`n[5/5] Uploading $ZipName..." -ForegroundColor Yellow
-gh release upload $Tag $ZipPath --clobber
+Write-Host "`n[5/5] Uploading $ArchiveName..." -ForegroundColor Yellow
+gh release upload $Tag $ArchivePath --clobber
 
 # Publish if it was a draft
 if ($HasCMake) {

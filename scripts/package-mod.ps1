@@ -13,10 +13,19 @@ param(
 $ErrorActionPreference = "Stop"
 $ModDir = "mods/$Mod"
 
-# Find the DLL
+# Find the DLL - check Cargo builds first, then CMake builds
+$ModUnderscore = $Mod.Replace("-", "_")
 $DllPaths = @(
+    # Cargo builds (default target)
+    "target/release/ctd_$ModUnderscore.dll",
+    # Cargo builds (explicit x64)
+    "target/x86_64-pc-windows-msvc/release/ctd_$ModUnderscore.dll",
+    # Cargo builds (x86)
+    "target/i686-pc-windows-msvc/release/ctd_$ModUnderscore.dll",
+    # CMake builds
     "$ModDir/build/Release/ctd-$Mod.dll",
     "$ModDir/build/Release/*.dll",
+    # UE4SS builds
     "$ModDir/build/CTDCrashReporter/dlls/main.dll",
     "$ModDir/build/CTDCrashReporter/dlls/Game__Shipping__Win64/main.dll",
     "$ModDir/build/Game__Shipping__Win64/CTDCrashReporter/dlls/main.dll"
@@ -55,9 +64,9 @@ if (Test-Path $NexusToml) {
 
 # Create package
 $DistDir = "dist/ctd-$Mod-v$Version"
-$ZipName = "ctd-$Mod-v$Version.zip"
+$ArchiveName = "ctd-$Mod-v$Version.7z"
 
-Write-Host "Packaging to $ZipName..." -ForegroundColor Cyan
+Write-Host "Packaging to $ArchiveName..." -ForegroundColor Cyan
 
 # Clean and create dirs
 if (Test-Path $DistDir) { Remove-Item $DistDir -Recurse -Force }
@@ -108,11 +117,23 @@ Requires: $ScriptExtender
 https://github.com/ezmode-games/ctd
 "@ | Set-Content "$DistDir/README.txt" -Encoding UTF8
 
-# Zip
-$ZipPath = "dist/$ZipName"
-if (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
-Compress-Archive -Path "$DistDir/*" -DestinationPath $ZipPath
+# 7z archive
+$ArchivePath = "dist/$ArchiveName"
+if (Test-Path $ArchivePath) { Remove-Item $ArchivePath -Force }
 
-$Size = [math]::Round((Get-Item $ZipPath).Length / 1KB, 1)
-Write-Host "Created: $ZipPath ($Size KB)" -ForegroundColor Green
+# Find 7z executable
+$7zPath = "C:\Program Files\7-Zip\7z.exe"
+if (-not (Test-Path $7zPath)) {
+    $7zPath = "C:\Program Files (x86)\7-Zip\7z.exe"
+}
+if (-not (Test-Path $7zPath)) {
+    $7zPath = "7z"  # Try PATH
+}
+
+Push-Location $DistDir
+& $7zPath a -t7z -mx=9 "../$ArchiveName" * | Out-Null
+Pop-Location
+
+$Size = [math]::Round((Get-Item $ArchivePath).Length / 1KB, 1)
+Write-Host "Created: $ArchivePath ($Size KB)" -ForegroundColor Green
 Write-Host "Upload to: https://github.com/ezmode-games/ctd/releases" -ForegroundColor Yellow

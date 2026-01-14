@@ -65,6 +65,9 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Install 7-Zip
+        run: choco install 7zip -y
+
       - name: Parse nexus.toml config
         id: config
         shell: pwsh
@@ -176,16 +179,18 @@ jobs:
           https://github.com/ezmode-games/ctd
           "@ | Set-Content "$distDir/README.txt" -Encoding UTF8
 
-          # Create zip
-          $zipName = "ctd-$mod-v$version.zip"
-          Compress-Archive -Path "$distDir/*" -DestinationPath "dist/$zipName"
-          Write-Host "Created dist/$zipName"
+          # Create 7z archive
+          $archiveName = "ctd-$mod-v$version.7z"
+          Push-Location $distDir
+          & "C:\Program Files\7-Zip\7z.exe" a -t7z -mx=9 "../$archiveName" *
+          Pop-Location
+          Write-Host "Created dist/$archiveName"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ needs.parse-tag.outputs.mod_name }}
-          path: dist/*.zip
+          path: dist/*.7z
 
   release:
     name: Create Release
@@ -240,6 +245,6 @@ jobs:
             cmake -B build
             cmake --build build --config Release
             ```' }}
-          files: artifacts/*.zip
+          files: artifacts/*.7z
           draft: ${{ needs.parse-tag.outputs.build_type == 'cmake' }}
           generate_release_notes: true
