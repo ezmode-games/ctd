@@ -5,9 +5,10 @@
 # 1. Updates version in Cargo.toml workspace
 # 2. Updates Cargo.lock
 # 3. Regenerates status.json
-# 4. Commits changes
-# 5. Creates tags for each releasable mod
-# 6. Pushes to origin (tags trigger CI draft releases)
+# 4. Updates CHANGELOG.md (moves [Unreleased] to new version)
+# 5. Commits changes
+# 6. Creates tags for each releasable mod
+# 7. Pushes to origin (tags trigger CI draft releases)
 
 param(
     [Parameter(Mandatory=$true)]
@@ -39,7 +40,7 @@ if ($gitStatus -and -not $DryRun) {
 }
 
 # 1. Update Cargo.toml workspace version
-Write-Host "`n[1/5] Updating Cargo.toml..." -ForegroundColor Yellow
+Write-Host "`n[1/6] Updating Cargo.toml..." -ForegroundColor Yellow
 $cargoToml = "$RepoRoot/Cargo.toml"
 $content = Get-Content $cargoToml -Raw
 # Only replace version in [workspace.package] section, not dependency versions
@@ -51,7 +52,7 @@ if ($DryRun) {
 }
 
 # 2. Update Cargo.lock
-Write-Host "`n[2/5] Updating Cargo.lock..." -ForegroundColor Yellow
+Write-Host "`n[2/6] Updating Cargo.lock..." -ForegroundColor Yellow
 if ($DryRun) {
     Write-Host "Would run: cargo update --workspace" -ForegroundColor Gray
 } else {
@@ -61,26 +62,58 @@ if ($DryRun) {
 }
 
 # 3. Regenerate status.json
-Write-Host "`n[3/5] Regenerating status.json..." -ForegroundColor Yellow
+Write-Host "`n[3/6] Regenerating status.json..." -ForegroundColor Yellow
 if ($DryRun) {
     Write-Host "Would run: generate-status.ps1" -ForegroundColor Gray
 } else {
     & "$ScriptDir/generate-status.ps1"
 }
 
-# 4. Commit changes
-Write-Host "`n[4/5] Committing changes..." -ForegroundColor Yellow
+# 4. Update CHANGELOG.md
+Write-Host "`n[4/6] Updating CHANGELOG.md..." -ForegroundColor Yellow
+$changelogPath = "$RepoRoot/CHANGELOG.md"
+$today = (Get-Date).ToString("yyyy-MM-dd")
+$prevVersion = "0.1.$(([int]$Version.Split('.')[-1]) - 1)"
+
+if (Test-Path $changelogPath) {
+    $changelog = Get-Content $changelogPath -Raw
+
+    # Check if there's content under [Unreleased]
+    if ($changelog -match '## \[Unreleased\]\s*\n\s*\n## \[') {
+        Write-Warning "No changes under [Unreleased] section"
+    }
+
+    # Replace [Unreleased] header and add new version
+    $newChangelog = $changelog -replace '## \[Unreleased\]', "## [Unreleased]`n`n## [$Version] - $today"
+
+    # Add version link at bottom (before the last empty lines)
+    $versionLink = "[$Version]: https://github.com/ezmode-games/ctd/compare/skyrim-v$prevVersion...skyrim-v$Version"
+    if ($newChangelog -notmatch "\[$Version\]:") {
+        $newChangelog = $newChangelog.TrimEnd() + "`n$versionLink`n"
+    }
+
+    if ($DryRun) {
+        Write-Host "Would update CHANGELOG.md with version $Version dated $today" -ForegroundColor Gray
+    } else {
+        [System.IO.File]::WriteAllText($changelogPath, $newChangelog, [System.Text.UTF8Encoding]::new($false))
+    }
+} else {
+    Write-Warning "CHANGELOG.md not found, skipping"
+}
+
+# 5. Commit changes
+Write-Host "`n[5/6] Committing changes..." -ForegroundColor Yellow
 if ($DryRun) {
     Write-Host "Would commit: chore: bump version to $Version" -ForegroundColor Gray
 } else {
     Push-Location $RepoRoot
-    git add Cargo.toml Cargo.lock status.json
+    git add Cargo.toml Cargo.lock status.json CHANGELOG.md
     git commit -m "chore: bump version to $Version"
     Pop-Location
 }
 
-# 5. Create tags
-Write-Host "`n[5/5] Creating release tags..." -ForegroundColor Yellow
+# 6. Create tags
+Write-Host "`n[6/6] Creating release tags..." -ForegroundColor Yellow
 $tags = @()
 foreach ($mod in $ReleasableMods) {
     $tag = "$mod-v$Version"
