@@ -42,7 +42,8 @@ if ($gitStatus -and -not $DryRun) {
 Write-Host "`n[1/5] Updating Cargo.toml..." -ForegroundColor Yellow
 $cargoToml = "$RepoRoot/Cargo.toml"
 $content = Get-Content $cargoToml -Raw
-$newContent = $content -replace '(version\s*=\s*")[^"]+(")', "`${1}$Version`${2}"
+# Only replace version in [workspace.package] section, not dependency versions
+$newContent = $content -replace '(\[workspace\.package\][\s\S]*?version\s*=\s*")[^"]+(")', "`${1}$Version`${2}"
 if ($DryRun) {
     Write-Host "Would update $cargoToml" -ForegroundColor Gray
 } else {
@@ -55,7 +56,7 @@ if ($DryRun) {
     Write-Host "Would run: cargo update --workspace" -ForegroundColor Gray
 } else {
     Push-Location $RepoRoot
-    cargo update --workspace 2>&1 | Out-Null
+    cargo update --workspace
     Pop-Location
 }
 
@@ -75,11 +76,10 @@ if ($DryRun) {
     Push-Location $RepoRoot
     git add Cargo.toml Cargo.lock status.json
     git commit -m "chore: bump version to $Version"
-    git push origin main
     Pop-Location
 }
 
-# 5. Create and push tags
+# 5. Create tags
 Write-Host "`n[5/5] Creating release tags..." -ForegroundColor Yellow
 $tags = @()
 foreach ($mod in $ReleasableMods) {
@@ -89,14 +89,25 @@ foreach ($mod in $ReleasableMods) {
         Write-Host "Would create tag: $tag" -ForegroundColor Gray
     } else {
         Push-Location $RepoRoot
-        git tag $tag 2>&1 | Out-Null
+        # Check if tag already exists
+        git rev-parse -q --verify "refs/tags/$tag" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Warning "Tag '$tag' already exists; skipping creation."
+        } else {
+            git tag $tag
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to create tag '$tag'"
+            }
+        }
         Pop-Location
     }
 }
 
+# 6. Push commit and tags together
 if (-not $DryRun) {
+    Write-Host "`nPushing to origin..." -ForegroundColor Yellow
     Push-Location $RepoRoot
-    git push origin $tags
+    git push origin main --tags
     Pop-Location
 }
 

@@ -189,9 +189,9 @@ $output = [ordered]@{
     mods = $mods
 }
 
-# Write JSON
+# Write JSON without BOM (UTF8 with BOM can break some JSON parsers)
 $json = $output | ConvertTo-Json -Depth 10
-$json | Set-Content $OutputFile -Encoding UTF8
+[System.IO.File]::WriteAllText($OutputFile, $json, [System.Text.UTF8Encoding]::new($false))
 
 Write-Host "Generated: $OutputFile" -ForegroundColor Green
 Write-Host $json
