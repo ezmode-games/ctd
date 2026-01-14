@@ -51,14 +51,14 @@ $ModMeta = @{
         features = @("crash_capture")
     }
     "fallout3" = @{
-        status = "scaffolding"
-        quality = "scaffolding"
-        features = @()
+        status = "beta"
+        quality = "good"
+        features = @("crash_capture", "load_order", "mod_fingerprinting")
     }
     "newvegas" = @{
-        status = "scaffolding"
-        quality = "scaffolding"
-        features = @()
+        status = "beta"
+        quality = "good"
+        features = @("crash_capture", "load_order", "mod_fingerprinting")
     }
 }
 
@@ -189,9 +189,9 @@ $output = [ordered]@{
     mods = $mods
 }
 
-# Write JSON
+# Write JSON without BOM (UTF8 with BOM can break some JSON parsers)
 $json = $output | ConvertTo-Json -Depth 10
-$json | Set-Content $OutputFile -Encoding UTF8
+[System.IO.File]::WriteAllText($OutputFile, $json, [System.Text.UTF8Encoding]::new($false))
 
 Write-Host "Generated: $OutputFile" -ForegroundColor Green
 Write-Host $json
