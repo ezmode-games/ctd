@@ -86,6 +86,7 @@ const result = example.method(parameters);
 - [ ] No emoji in code, comments, or documentation
 - [ ] Exports added to index files
 - [ ] Uses Result<T> type for error handling
+- [ ] CHANGELOG.md updated under `[Unreleased]` section
 
 **This issue is complete when:** [Specific, measurable completion condition]
 
