@@ -1,146 +1,64 @@
 # CTD - Crash To Desktop Reporter
 
-A crash reporter for modded games that helps players share crash context with mod creators.
+Automatic crash reporting for modded games. Captures crash context and helps identify patterns across users.
 
-**Version**: 0.1.0
 **Hosted**: [ctd.ezmode.games](https://ctd.ezmode.games)
+**API Docs**: [OpenAPI 3.1](https://ctd.ezmode.games/docs)
 **License**: AGPL-3.0
-**API Spec**: [OpenAPI 3.1](https://ctd.ezmode.games/openapi.json)
-
-## What is CTD?
-
-CTD captures crash context from modded games and makes it easy to share with mod creators:
-
-- **Stack traces** with module offsets for debugging
-- **Load order snapshots** at crash time
-- **Pattern detection** across users (same crash = same cause)
-- **Anonymous or account-linked** reports
 
 ## Supported Games
 
-**Phase 1 (MVP)**
-- Cyberpunk 2077 (RED4ext) - Pure Rust
+| Game | Plugin | Status |
+|------|--------|--------|
+| Skyrim SE/AE | SKSE64 | Beta |
+| Fallout 4 | F4SE | Beta |
+| Cyberpunk 2077 | RED4ext | Beta |
+| Oblivion Remastered | UE4SS | Alpha |
+| Unreal Engine 5 | UE4SS | Alpha |
 
-**Phase 2**
-- Skyrim Special Edition (SKSE64)
-- Fallout 4 (F4SE)
+## What It Captures
 
-**Phase 3**
-- Baldur's Gate 3
-- Stardew Valley
+- Stack traces with module offsets
+- Load order at crash time
+- Mod fingerprints (file hashes)
+- Crash patterns across users
 
-## Repository Structure
+## Installation
 
-```
-ctd/
-├── lib/                # Shared Rust libraries
-│   └── ctd-core/       # Core types, API client, crash report builder
-├── mods/               # Game-specific mods
-│   └── cyberpunk/      # RED4ext plugin for Cyberpunk 2077
-├── api/                # Hono API (TypeScript)
-│   ├── src/
-│   │   ├── index.ts
-│   │   ├── routes/
-│   │   ├── db/
-│   │   └── lib/
-│   ├── package.json
-│   └── drizzle.config.ts
-├── Cargo.toml          # Rust workspace root
-└── README.md
-```
+Download from [Releases](https://github.com/ezmode-games/ctd/releases) or [Nexus Mods](https://www.nexusmods.com).
 
-## API Documentation
-
-The API follows OpenAPI 3.1 specification. Interactive documentation available at:
-
-- **Swagger UI**: [ctd.ezmode.games/docs](https://ctd.ezmode.games/docs)
-- **OpenAPI JSON**: [ctd.ezmode.games/openapi.json](https://ctd.ezmode.games/openapi.json)
-
-### Public Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/crash-reports` | Submit a new crash report |
-| `GET` | `/api/crash-reports/{id}` | Get crash report by ID |
-| `GET` | `/api/games/{gameId}/patterns` | List known crash patterns |
-| `GET` | `/api/patterns/{id}` | Get pattern details |
-
-### Authenticated Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/me/crash-reports` | List user's crash reports |
-| `PATCH` | `/api/crash-reports/{id}` | Update report |
-| `DELETE` | `/api/crash-reports/{id}` | Delete report |
-
-### Creator Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/creator/crash-subscriptions` | List subscribed mods |
-| `POST` | `/api/creator/crash-subscriptions` | Subscribe to mod crashes |
-| `GET` | `/api/creator/crash-feed` | Crash feed for your mods |
-
-## Self-Hosting
-
-Full source code available. Run the exact same code we do:
-
-```bash
-# Clone and run
-git clone https://github.com/ezmode-games/ctd
-cd ctd/api
-pnpm install
-pnpm dev
-
-# Or build and run
-pnpm build
-node dist/index.js --port 3000 --db ./ctd.db
-```
-
-### Database Options
-
-```bash
-# SQLite (default, zero config)
-node dist/index.js --db ./ctd.db
-
-# PostgreSQL
-node dist/index.js --database-url postgres://user:pass@host/db
-
-# MySQL
-node dist/index.js --database-url mysql://user:pass@host/db
-```
+Extract to your game's mod directory or install via Vortex/MO2.
 
 ## For Mod Creators
 
-Subscribe to crashes that mention your mods:
+Subscribe to crashes mentioning your mods:
 
-1. **See crashes mentioning your mod** - Not blame, but visibility
-2. **Pattern detection** - "50 crashes with your mod + ENB + this other mod"
-3. **User communication** - Reply to crash reports with fix suggestions
-4. **Export data** - CSV export for analysis
+- See crash reports where your mod is present
+- Pattern detection ("50 users crashed with mod A + mod B")
+- Export data for analysis
 
-## Privacy
+## Building
 
-**Anonymous mode (default):**
-- No account required
-- Crash reports stored with random ID
-- Load order stored (mod names only, no paths)
-- No PII collected
+### Cargo Mods (Cyberpunk)
 
-**Account mode:**
-- Link reports to ezmode account
-- Private by default
-- Can share via token
-- Can delete reports
+```bash
+cargo build --release -p ctd-cyberpunk
+```
 
-**Data retention:**
-- Anonymous reports: 90 days
-- Account reports: Until deleted
-- Minidumps: 30 days
+### CMake Mods (Skyrim, Fallout 4)
 
-## Development
+```powershell
+.\scripts\build-mod.ps1 -Mod skyrim
+.\scripts\build-mod.ps1 -Mod fallout4
+```
 
-### API (TypeScript/Hono)
+### Packaging
+
+```powershell
+.\scripts\package-mod.ps1 -Mod skyrim -Version 0.1.2
+```
+
+## Self-Hosting
 
 ```bash
 cd api
@@ -148,22 +66,6 @@ pnpm install
 pnpm dev
 ```
 
-Uses `@hono/zod-openapi` for type-safe routes with automatic OpenAPI spec generation.
-
-### Rust Components
-
-```bash
-# Build all crates
-cargo build --release
-
-# Run tests
-cargo test
-```
-
-## Contributing
-
-Contributions welcome. This is AGPL-3.0 licensed - any modifications must be open sourced.
-
 ## License
 
-AGPL-3.0 - See [LICENSE](LICENSE) for details.
+AGPL-3.0 - Modifications must be open sourced.
