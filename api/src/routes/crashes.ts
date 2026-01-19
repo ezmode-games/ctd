@@ -4,7 +4,7 @@ import Sqids from 'sqids';
 import { ulid } from 'ulid';
 
 import { crashPattern, crashReport, db } from '@/db/index';
-import { computeCrashHash } from '@/lib/crash-hash';
+import { computeHierarchicalSignature } from '@/lib/hierarchical-hash';
 
 // Schemas
 const CreateCrashReportSchema = z
@@ -220,18 +220,30 @@ crashesApp.openapi(submitCrashRoute, async (c) => {
 
 	const id = ulid();
 	const shareToken = generateShareToken();
-	const crashHash = body.crashHash || computeCrashHash(body.stackTrace);
 	const now = new Date();
+
+	// Compute hierarchical signatures for confidence-based matching
+	const signature = computeHierarchicalSignature(
+		body.stackTrace,
+		body.exceptionCode,
+		body.faultingModule,
+	);
+	// Use provided crashHash if available, otherwise use L5 (most specific)
+	const crashHash = body.crashHash || signature.l5;
 
 	await db.insert(crashReport).values({
 		id,
 		schemaVersion: body.schemaVersion,
 		gameId: body.gameId,
 		crashHash,
+		l1Hash: signature.l1,
+		l2Hash: signature.l2,
+		l3Hash: signature.l3,
+		l4Hash: signature.l4,
 		stackTrace: body.stackTrace,
 		exceptionCode: body.exceptionCode,
 		exceptionAddress: body.exceptionAddress,
-		faultingModule: body.faultingModule,
+		faultingModule: body.faultingModule ?? signature.meta.faultingModule,
 		gameVersion: body.gameVersion,
 		scriptExtenderVersion: body.scriptExtenderVersion,
 		osVersion: body.osVersion,

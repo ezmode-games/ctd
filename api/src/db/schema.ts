@@ -7,8 +7,13 @@ export const crashReport = sqliteTable('crash_report', {
 	gameId: text('game_id').notNull(),
 	userId: text('user_id'),
 
-	// Crash identification
-	crashHash: text('crash_hash').notNull(),
+	// Crash identification - hierarchical hashes for confidence-based matching
+	// L5 (crashHash) is the most specific, L1 is the broadest
+	crashHash: text('crash_hash').notNull(), // L5: top 10 frames (backwards compatible)
+	l1Hash: text('l1_hash'), // faulting_module only
+	l2Hash: text('l2_hash'), // faulting_module + exception_code
+	l3Hash: text('l3_hash'), // faulting_module + top_frame
+	l4Hash: text('l4_hash'), // faulting_module + top_3_frames
 	stackTrace: text('stack_trace').notNull(),
 	exceptionCode: text('exception_code'),
 	exceptionAddress: text('exception_address'),
