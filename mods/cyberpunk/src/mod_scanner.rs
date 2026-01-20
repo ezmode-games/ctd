@@ -15,10 +15,18 @@
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
+use ctd_core::fingerprint::{file_size, fingerprint_file, pe_version};
 use ctd_core::load_order::{LoadOrder, LoadOrderEntry};
+use serde::Deserialize;
 use thiserror::Error;
 use tracing::{debug, warn};
 use walkdir::WalkDir;
+
+/// REDmod info.json structure for version extraction.
+#[derive(Deserialize)]
+struct RedModInfo {
+    version: Option<String>,
+}
 
 /// Errors that can occur during mod scanning.
 #[derive(Error, Debug)]
@@ -53,20 +61,6 @@ pub enum ModType {
     Redscript,
     /// TweakXL (`.yaml`/`.yml`) tweak files.
     TweakXL,
-}
-
-impl ModType {
-    /// Returns the prefix used in load order entries for this mod type.
-    fn prefix(self) -> &'static str {
-        match self {
-            ModType::Archive => "",
-            ModType::RedMod => "[REDmod]",
-            ModType::Red4ext => "[RED4ext]",
-            ModType::Cet => "[CET]",
-            ModType::Redscript => "[Redscript]",
-            ModType::TweakXL => "[TweakXL]",
-        }
-    }
 }
 
 /// Mod paths relative to the game directory, with their type.
@@ -174,7 +168,21 @@ fn scan_archive_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut
         let file_path = entry.path();
         if file_path.extension().is_some_and(|ext| ext == "archive") {
             let name = entry.file_name().to_string_lossy().into_owned();
-            entries.push(LoadOrderEntry::full(name, true, *index));
+
+            let mut builder = LoadOrderEntry::builder(name)
+                .mod_type("archive")
+                .enabled(true)
+                .index(*index);
+
+            // Best-effort fingerprinting (don't fail if file is locked, etc.)
+            if let Ok(fp) = fingerprint_file(file_path) {
+                builder = builder.fingerprint(fp);
+            }
+            if let Ok(size) = file_size(file_path) {
+                builder = builder.size(size);
+            }
+
+            entries.push(builder.build());
             *index += 1;
         }
     }
@@ -189,12 +197,30 @@ fn scan_redmod_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut 
             && let Some(mod_dir) = file_path.parent()
             && let Some(mod_name) = mod_dir.file_name()
         {
-            let name = format!(
-                "{} {}",
-                ModType::RedMod.prefix(),
-                mod_name.to_string_lossy()
-            );
-            entries.push(LoadOrderEntry::full(name, true, *index));
+            let name = mod_name.to_string_lossy().into_owned();
+
+            let mut builder = LoadOrderEntry::builder(name)
+                .mod_type("redmod")
+                .enabled(true)
+                .index(*index);
+
+            // Best-effort fingerprinting of info.json
+            if let Ok(fp) = fingerprint_file(file_path) {
+                builder = builder.fingerprint(fp);
+            }
+            if let Ok(size) = file_size(file_path) {
+                builder = builder.size(size);
+            }
+
+            // Extract version from info.json
+            if let Ok(content) = std::fs::read_to_string(file_path)
+                && let Ok(info) = serde_json::from_str::<RedModInfo>(&content)
+                && let Some(ver) = info.version
+            {
+                builder = builder.version(ver);
+            }
+
+            entries.push(builder.build());
             *index += 1;
         }
     }
@@ -212,8 +238,27 @@ fn scan_red4ext_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut
                 continue;
             }
 
-            let name = format!("{} {}", ModType::Red4ext.prefix(), filename);
-            entries.push(LoadOrderEntry::full(name, true, *index));
+            let name = filename.into_owned();
+
+            let mut builder = LoadOrderEntry::builder(name)
+                .mod_type("red4ext")
+                .enabled(true)
+                .index(*index);
+
+            // Best-effort fingerprinting
+            if let Ok(fp) = fingerprint_file(file_path) {
+                builder = builder.fingerprint(fp);
+            }
+            if let Ok(size) = file_size(file_path) {
+                builder = builder.size(size);
+            }
+
+            // Extract PE version info
+            if let Some(ver) = pe_version(file_path) {
+                builder = builder.version(ver);
+            }
+
+            entries.push(builder.build());
             *index += 1;
         }
     }
@@ -223,12 +268,27 @@ fn scan_red4ext_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut
 fn scan_cet_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
     // CET mods are directories containing init.lua
     for entry in WalkDir::new(path).max_depth(2).into_iter().flatten() {
+        let file_path = entry.path();
         if entry.file_name() == "init.lua"
-            && let Some(mod_dir) = entry.path().parent()
+            && let Some(mod_dir) = file_path.parent()
             && let Some(mod_name) = mod_dir.file_name()
         {
-            let name = format!("{} {}", ModType::Cet.prefix(), mod_name.to_string_lossy());
-            entries.push(LoadOrderEntry::full(name, true, *index));
+            let name = mod_name.to_string_lossy().into_owned();
+
+            let mut builder = LoadOrderEntry::builder(name)
+                .mod_type("cet")
+                .enabled(true)
+                .index(*index);
+
+            // Best-effort fingerprinting of init.lua
+            if let Ok(fp) = fingerprint_file(file_path) {
+                builder = builder.fingerprint(fp);
+            }
+            if let Ok(size) = file_size(file_path) {
+                builder = builder.size(size);
+            }
+
+            entries.push(builder.build());
             *index += 1;
         }
     }
@@ -236,8 +296,9 @@ fn scan_cet_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32
 
 /// Scans for Redscript mods (`.reds` files).
 fn scan_redscript_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
-    // Collect unique script directories/files
-    let mut seen_mods = std::collections::HashSet::new();
+    // Collect unique script directories/files with their representative file path
+    let mut seen_mods: std::collections::HashMap<String, PathBuf> =
+        std::collections::HashMap::new();
 
     for entry in WalkDir::new(path).into_iter().flatten() {
         let file_path = entry.path();
@@ -257,20 +318,38 @@ fn scan_redscript_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &m
                 entry.file_name().to_string_lossy().into_owned()
             };
 
-            // Only add each mod directory once
-            if seen_mods.insert(mod_name.clone()) {
-                let name = format!("{} {}", ModType::Redscript.prefix(), mod_name);
-                entries.push(LoadOrderEntry::full(name, true, *index));
-                *index += 1;
-            }
+            // Only track first file encountered for each mod
+            seen_mods
+                .entry(mod_name)
+                .or_insert_with(|| file_path.to_path_buf());
         }
+    }
+
+    // Build entries from collected mods
+    for (mod_name, file_path) in seen_mods {
+        let mut builder = LoadOrderEntry::builder(mod_name)
+            .mod_type("redscript")
+            .enabled(true)
+            .index(*index);
+
+        // Best-effort fingerprinting of the representative file
+        if let Ok(fp) = fingerprint_file(&file_path) {
+            builder = builder.fingerprint(fp);
+        }
+        if let Ok(size) = file_size(&file_path) {
+            builder = builder.size(size);
+        }
+
+        entries.push(builder.build());
+        *index += 1;
     }
 }
 
 /// Scans for TweakXL mods (`.yaml`/`.yml` files).
 fn scan_tweakxl_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut u32) {
-    // Collect unique tweak directories/files
-    let mut seen_mods = std::collections::HashSet::new();
+    // Collect unique tweak directories/files with their representative file path
+    let mut seen_mods: std::collections::HashMap<String, PathBuf> =
+        std::collections::HashMap::new();
 
     for entry in WalkDir::new(path).into_iter().flatten() {
         let file_path = entry.path();
@@ -292,13 +371,30 @@ fn scan_tweakxl_mods(path: &Path, entries: &mut Vec<LoadOrderEntry>, index: &mut
                 entry.file_name().to_string_lossy().into_owned()
             };
 
-            // Only add each mod directory once
-            if seen_mods.insert(mod_name.clone()) {
-                let name = format!("{} {}", ModType::TweakXL.prefix(), mod_name);
-                entries.push(LoadOrderEntry::full(name, true, *index));
-                *index += 1;
-            }
+            // Only track first file encountered for each mod
+            seen_mods
+                .entry(mod_name)
+                .or_insert_with(|| file_path.to_path_buf());
         }
+    }
+
+    // Build entries from collected mods
+    for (mod_name, file_path) in seen_mods {
+        let mut builder = LoadOrderEntry::builder(mod_name)
+            .mod_type("tweakxl")
+            .enabled(true)
+            .index(*index);
+
+        // Best-effort fingerprinting of the representative file
+        if let Ok(fp) = fingerprint_file(&file_path) {
+            builder = builder.fingerprint(fp);
+        }
+        if let Ok(size) = file_size(&file_path) {
+            builder = builder.size(size);
+        }
+
+        entries.push(builder.build());
+        *index += 1;
     }
 }
 
@@ -363,16 +459,6 @@ pub(crate) fn get_game_directory_path() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_mod_type_prefix() {
-        assert_eq!(ModType::Archive.prefix(), "");
-        assert_eq!(ModType::RedMod.prefix(), "[REDmod]");
-        assert_eq!(ModType::Red4ext.prefix(), "[RED4ext]");
-        assert_eq!(ModType::Cet.prefix(), "[CET]");
-        assert_eq!(ModType::Redscript.prefix(), "[Redscript]");
-        assert_eq!(ModType::TweakXL.prefix(), "[TweakXL]");
-    }
 
     #[test]
     fn test_mod_paths_coverage() {

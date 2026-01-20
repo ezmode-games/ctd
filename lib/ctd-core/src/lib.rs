@@ -9,6 +9,7 @@
 pub mod api_client;
 pub mod config;
 pub mod crash_report;
+pub mod fingerprint;
 pub mod load_order;
 
 use thiserror::Error;
