@@ -32,6 +32,30 @@ pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
 pub struct Config {
     /// API configuration.
     pub api: ApiConfig,
+    /// Symbol resolution configuration.
+    pub symbols: SymbolsConfig,
+}
+
+/// Configuration for PDB symbol resolution.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SymbolsConfig {
+    /// Enable symbol resolution (default: true).
+    pub enabled: bool,
+    /// Directory for symbol cache files.
+    pub cache_dir: Option<PathBuf>,
+    /// Additional directories to search for PDB files.
+    pub search_dirs: Vec<PathBuf>,
+}
+
+impl Default for SymbolsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            cache_dir: None,
+            search_dirs: Vec::new(),
+        }
+    }
 }
 
 /// API-specific configuration.
@@ -146,6 +170,16 @@ crashes_path = "/crashes"
 
 # Request timeout in seconds
 timeout_secs = 30
+
+[symbols]
+# Enable PDB symbol resolution for enhanced stack traces
+enabled = true
+
+# Directory for symbol cache (default: system cache dir)
+# cache_dir = "C:/Users/You/.ctd/symcache"
+
+# Additional directories to search for PDB files
+# search_dirs = ["C:/Games/Skyrim/Data/SKSE/Plugins"]
 "#
     }
 }

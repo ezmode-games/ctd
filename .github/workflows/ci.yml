@@ -34,8 +34,11 @@ jobs:
       - name: Detect changed mods
         id: mods
         run: |
-          # Get pure-Cargo mods only (exclude CMake mods - built locally)
-          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | grep -v -E '^(skyrim|fallout4|oblivion-remastered)$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          # Get buildable mods (exclude CMake/UE4SS mods and incomplete scaffolding)
+          # skyrim, fallout4: CMake hybrid mods - built locally
+          # oblivion-remastered, elden-ring: UE4SS mods - require local submodule setup
+          # fallout3, newvegas: incomplete scaffolding - missing C++ bridge files
+          ALL_MODS=$(ls -d mods/*/ 2>/dev/null | xargs -n1 basename | grep -v -E '^(skyrim|fallout4|oblivion-remastered|elden-ring|fallout3|newvegas)$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
 
           # Get changed files in this PR/push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -199,3 +202,23 @@ jobs:
           fi
 
           echo "All required checks passed!"
+
+  update-status:
+    name: Update Status
+    needs: ci-success
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate status.json
+        shell: pwsh
+        run: ./scripts/generate-status.ps1
+
+      - name: Commit status.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add status.json
+          git diff --staged --quiet || git commit -m "chore: update status.json [skip ci]"
+          git push

@@ -157,6 +157,7 @@ target_link_libraries(${PLUGIN_TARGET} PRIVATE
     ws2_32
     kernel32
     bcrypt
+    RuntimeObject
 )
 
 # Ensure plugin waits for Rust build (which generates CXX headers)

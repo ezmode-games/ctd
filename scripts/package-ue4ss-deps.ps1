@@ -53,10 +53,22 @@ if (Test-Path "$BuildDir/Game__Shipping__Win64/include") {
     date = (Get-Date -Format "yyyy-MM-dd")
 } | ConvertTo-Json | Set-Content "$OutPath/version.json"
 
-# Create zip
-$ZipPath = "$OutputDir/ue4ss-deps-$Version.zip"
-Write-Host "Creating $ZipPath..."
-Compress-Archive -Path $OutPath -DestinationPath $ZipPath -Force
+# Create 7z archive
+$ArchivePath = "$OutputDir/ue4ss-deps-$Version.7z"
+Write-Host "Creating $ArchivePath..."
 
-Write-Host "Done! Upload $ZipPath to GitHub Releases"
-Write-Host "Size: $([math]::Round((Get-Item $ZipPath).Length / 1MB, 2)) MB"
+# Find 7z executable
+$7zPath = "C:\Program Files\7-Zip\7z.exe"
+if (-not (Test-Path $7zPath)) {
+    $7zPath = "C:\Program Files (x86)\7-Zip\7z.exe"
+}
+if (-not (Test-Path $7zPath)) {
+    $7zPath = "7z"  # Try PATH
+}
+
+Push-Location $OutPath
+& $7zPath a -t7z -mx=9 "../ue4ss-deps-$Version.7z" * | Out-Null
+Pop-Location
+
+Write-Host "Done! Upload $ArchivePath to GitHub Releases"
+Write-Host "Size: $([math]::Round((Get-Item $ArchivePath).Length / 1MB, 2)) MB"

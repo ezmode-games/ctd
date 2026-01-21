@@ -4,8 +4,9 @@ use ctd_core::api_client::ApiClient;
 use ctd_core::crash_report::CreateCrashReport;
 use tracing::{error, info};
 
+use crate::ffi;
 use crate::ffi::ExceptionData;
-use crate::{build_load_order, ffi};
+use crate::fingerprint::build_mod_list;
 
 /// Game ID for Skyrim Special Edition.
 const GAME_ID: &str = "skyrim-se";
@@ -24,9 +25,10 @@ pub fn process_crash(data: ExceptionData) {
 fn submit_crash_report(
     data: ExceptionData,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Get load order from game
+    // Get load order from game and build mod list with file hashes
     let mods = ffi::get_load_order();
-    let load_order = build_load_order(mods);
+    let mod_names: Vec<String> = mods.into_iter().map(|m| m.name).collect();
+    let mod_list = build_mod_list(mod_names);
 
     // Build the crash report
     let mut builder = CreateCrashReport::builder()
@@ -35,7 +37,7 @@ fn submit_crash_report(
         .stack_trace(&data.stack_trace)
         .exception_code(format!("0x{:08X}", data.code))
         .exception_address(format!("0x{:016X}", data.address))
-        .load_order(load_order)
+        .load_order_v2(mod_list)
         .script_extender_version(ffi::get_skse_version())
         .crashed_now();
 

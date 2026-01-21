@@ -12,6 +12,9 @@ mods/*/deps/*.zip
 # Local settings
 .claude/
 
+# Build output
+dist/
+
 # Nexus release packages (build artifacts)
 mods/*/nexus/
 mods/*/dist/

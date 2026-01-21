@@ -295,7 +295,7 @@ fn get_module_at_address(address: u64) -> Option<String> {
         )
     };
 
-    if !success.is_ok() {
+    if success.is_err() {
         return None;
     }
 

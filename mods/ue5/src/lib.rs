@@ -5,6 +5,7 @@
 //! integrates with ctd-core for report submission.
 
 mod crash;
+pub mod fingerprint;
 
 use std::sync::OnceLock;
 

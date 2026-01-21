@@ -4,8 +4,13 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::load_order::LoadOrder;
+use crate::load_order::{LoadOrder, ModList};
 use crate::{CtdError, Result};
+
+/// Current schema version for crash reports.
+/// - v1: LoadOrderEntry with name/enabled/index only
+/// - v2: ModEntry with file_hash/file_size/version for pattern detection
+const CURRENT_SCHEMA_VERSION: u32 = 2;
 
 /// A crash report to be submitted to the API.
 ///
@@ -73,7 +78,7 @@ pub struct CreateCrashReport {
 }
 
 fn default_schema_version() -> u32 {
-    1
+    CURRENT_SCHEMA_VERSION
 }
 
 /// Response from the API after creating a crash report.
@@ -84,6 +89,13 @@ pub struct CrashReportResponse {
     pub id: String,
     /// Share token for accessing the report.
     pub share_token: String,
+}
+
+/// Internal enum to hold either v1 or v2 load order data.
+#[derive(Debug)]
+enum LoadOrderData {
+    V1(LoadOrder),
+    V2(ModList),
 }
 
 /// Builder for creating crash reports with validation.
@@ -98,7 +110,7 @@ pub struct CrashReportBuilder {
     game_version: Option<String>,
     script_extender_version: Option<String>,
     os_version: Option<String>,
-    load_order: Option<LoadOrder>,
+    load_order_data: Option<LoadOrderData>,
     crashed_at: Option<u64>,
     notes: Option<String>,
 }
@@ -163,9 +175,26 @@ impl CrashReportBuilder {
         self
     }
 
-    /// Sets the load order (required).
+    /// Sets the load order using v1 schema (LoadOrderEntry).
+    ///
+    /// For new implementations, prefer `load_order_v2` which includes
+    /// file hashes and versions for better pattern detection.
+    #[allow(deprecated)]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use load_order_v2 with ModList for pattern detection"
+    )]
     pub fn load_order(mut self, lo: LoadOrder) -> Self {
-        self.load_order = Some(lo);
+        self.load_order_data = Some(LoadOrderData::V1(lo));
+        self
+    }
+
+    /// Sets the load order using v2 schema (ModEntry with fingerprints).
+    ///
+    /// This is the preferred method for new implementations. ModEntry
+    /// includes file_hash, file_size, and version for pattern detection.
+    pub fn load_order_v2(mut self, list: ModList) -> Self {
+        self.load_order_data = Some(LoadOrderData::V2(list));
         self
     }
 
@@ -223,18 +252,30 @@ impl CrashReportBuilder {
             ));
         }
 
-        let load_order = self
-            .load_order
+        let load_order_data = self
+            .load_order_data
             .ok_or_else(|| CtdError::Validation("load_order is required".into()))?;
 
-        let plugin_count = load_order.len() as u32;
+        let (plugin_count, load_order_json, schema_version) = match load_order_data {
+            LoadOrderData::V1(lo) => {
+                let count = lo.len() as u32;
+                let json = lo.to_json().map_err(|e| {
+                    CtdError::Validation(format!("failed to serialize load_order: {}", e))
+                })?;
+                (count, json, 1)
+            }
+            LoadOrderData::V2(ml) => {
+                let count = ml.len() as u32;
+                let json = ml.to_json().map_err(|e| {
+                    CtdError::Validation(format!("failed to serialize load_order: {}", e))
+                })?;
+                (count, json, 2)
+            }
+        };
+
         if plugin_count > 10_000 {
             return Err(CtdError::Validation("plugin_count exceeds 10000".into()));
         }
-
-        let load_order_json = load_order
-            .to_json()
-            .map_err(|e| CtdError::Validation(format!("failed to serialize load_order: {}", e)))?;
 
         let crashed_at = self
             .crashed_at
@@ -296,7 +337,7 @@ impl CrashReportBuilder {
         }
 
         Ok(CreateCrashReport {
-            schema_version: 1,
+            schema_version,
             game_id,
             stack_trace,
             crash_hash: self.crash_hash,
@@ -329,8 +370,9 @@ impl CreateCrashReport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::load_order::LoadOrderEntry;
+    use crate::load_order::{LoadOrderEntry, ModEntry, ModList};
 
+    #[allow(deprecated)]
     fn sample_load_order() -> LoadOrder {
         let entries = vec![
             LoadOrderEntry::full("Skyrim.esm", true, 0),
@@ -339,8 +381,20 @@ mod tests {
         LoadOrder::from_entries(entries)
     }
 
+    fn sample_mod_list() -> ModList {
+        let mut list = ModList::new();
+        list.push(ModEntry::new("Skyrim.esm", "a1b2c3d4e5f67890", 1000).with_index(0));
+        list.push(
+            ModEntry::new("SkyUI_SE.esp", "b2c3d4e5f6789012", 2000)
+                .with_version("5.2.1")
+                .with_index(1),
+        );
+        list
+    }
+
     #[test]
-    fn builder_creates_valid_report() {
+    #[allow(deprecated)]
+    fn builder_creates_valid_report_v1() {
         let report = CreateCrashReport::builder()
             .game_id("skyrim-se")
             .game_version("1.6.1170")
@@ -357,6 +411,26 @@ mod tests {
     }
 
     #[test]
+    fn builder_creates_valid_report_v2() {
+        let report = CreateCrashReport::builder()
+            .game_id("skyrim-se")
+            .game_version("1.6.1170")
+            .stack_trace("SkyrimSE.exe+0x12345")
+            .load_order_v2(sample_mod_list())
+            .crashed_at(1700000000000)
+            .build()
+            .unwrap();
+
+        assert_eq!(report.game_id, "skyrim-se");
+        assert_eq!(report.plugin_count, 2);
+        assert_eq!(report.schema_version, 2);
+        // Check that load_order_json contains fileHash
+        assert!(report.load_order_json.contains("fileHash"));
+        assert!(report.load_order_json.contains("a1b2c3d4e5f67890"));
+    }
+
+    #[test]
+    #[allow(deprecated)]
     fn builder_requires_game_id() {
         let result = CreateCrashReport::builder()
             .game_version("1.0")
@@ -370,6 +444,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn builder_requires_stack_trace() {
         let result = CreateCrashReport::builder()
             .game_id("skyrim-se")
@@ -383,6 +458,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn builder_validates_field_lengths() {
         let long_string = "x".repeat(51);
         let result = CreateCrashReport::builder()
@@ -398,6 +474,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn json_uses_camel_case() {
         let report = CreateCrashReport::builder()
             .game_id("skyrim-se")
