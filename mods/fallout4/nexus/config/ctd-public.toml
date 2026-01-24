@@ -1,0 +1,10 @@
+# CTD Crash Reporter Configuration
+# https://github.com/ezmode-games/ctd
+
+[server]
+# Public crash report server
+url = "https://ctd.ezmode.games"
+
+[user]
+# Optional: Add your API key for crash tracking
+# api_key = "your-key-here"

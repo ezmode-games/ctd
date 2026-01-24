@@ -12,12 +12,12 @@
 //! - **Redscript**: `.reds` scripts in `r6/scripts/`
 //! - **TweakXL**: `.yaml`/`.yml` files in `r6/tweaks/`
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use ctd_core::file_hash::compute_file_hash;
+use ctd_core::fingerprint::{file_size, fingerprint_file, pe_version};
 use ctd_core::load_order::{ModEntry, ModList};
-use ctd_core::version::get_dll_version;
 use thiserror::Error;
 use tracing::{debug, warn};
 use walkdir::WalkDir;
@@ -58,10 +58,10 @@ pub enum ModType {
 }
 
 impl ModType {
-    /// Returns the prefix used in load order entries for this mod type.
-    fn prefix(self) -> &'static str {
+    /// Returns a display prefix for the mod type.
+    fn prefix(&self) -> &'static str {
         match self {
-            ModType::Archive => "",
+            ModType::Archive => "[Archive]",
             ModType::RedMod => "[REDmod]",
             ModType::Red4ext => "[RED4ext]",
             ModType::Cet => "[CET]",
@@ -183,13 +183,18 @@ fn scan_archive_mods(path: &Path, list: &mut ModList, index: &mut u32) {
     for entry in WalkDir::new(path).max_depth(1).into_iter().flatten() {
         let file_path = entry.path();
         if file_path.extension().is_some_and(|ext| ext == "archive") {
-            let name = entry.file_name().to_string_lossy().into_owned();
+            let name = format!(
+                "{} {}",
+                ModType::Archive.prefix(),
+                entry.file_name().to_string_lossy()
+            );
 
             // Compute hash and size
-            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+            let hash = fingerprint_file(file_path).unwrap_or_else(|e| {
                 warn!("Failed to hash archive {}: {}", file_path.display(), e);
-                ("0000000000000000".to_string(), 0)
+                "0000000000000000".to_string()
             });
+            let size = file_size(file_path).unwrap_or(0);
 
             let mod_entry = ModEntry::new(name, hash, size)
                 .with_index(*index)
@@ -217,14 +222,15 @@ fn scan_redmod_mods(path: &Path, list: &mut ModList, index: &mut u32) {
             );
 
             // Compute hash from info.json file
-            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+            let hash = fingerprint_file(file_path).unwrap_or_else(|e| {
                 warn!(
                     "Failed to hash REDmod info.json {}: {}",
                     file_path.display(),
                     e
                 );
-                ("0000000000000000".to_string(), 0)
+                "0000000000000000".to_string()
             });
+            let size = file_size(file_path).unwrap_or(0);
 
             // Extract version from info.json
             let version = get_redmod_version(mod_dir);
@@ -258,13 +264,14 @@ fn scan_red4ext_mods(path: &Path, list: &mut ModList, index: &mut u32) {
             let name = format!("{} {}", ModType::Red4ext.prefix(), filename);
 
             // Compute hash and size
-            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+            let hash = fingerprint_file(file_path).unwrap_or_else(|e| {
                 warn!("Failed to hash RED4ext DLL {}: {}", file_path.display(), e);
-                ("0000000000000000".to_string(), 0)
+                "0000000000000000".to_string()
             });
+            let size = file_size(file_path).unwrap_or(0);
 
             // Extract DLL version
-            let version = get_dll_version(file_path).ok();
+            let version = pe_version(file_path);
 
             let mut mod_entry = ModEntry::new(name, hash, size)
                 .with_index(*index)
@@ -292,10 +299,11 @@ fn scan_cet_mods(path: &Path, list: &mut ModList, index: &mut u32) {
             let name = format!("{} {}", ModType::Cet.prefix(), mod_name.to_string_lossy());
 
             // Compute hash from init.lua
-            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+            let hash = fingerprint_file(file_path).unwrap_or_else(|e| {
                 warn!("Failed to hash CET init.lua {}: {}", file_path.display(), e);
-                ("0000000000000000".to_string(), 0)
+                "0000000000000000".to_string()
             });
+            let size = file_size(file_path).unwrap_or(0);
 
             let mod_entry = ModEntry::new(name, hash, size)
                 .with_index(*index)
@@ -309,8 +317,8 @@ fn scan_cet_mods(path: &Path, list: &mut ModList, index: &mut u32) {
 
 /// Scans for Redscript mods (`.reds` files).
 fn scan_redscript_mods(path: &Path, list: &mut ModList, index: &mut u32) {
-    // Collect unique script directories/files
-    let mut seen_mods = std::collections::HashSet::new();
+    // Collect unique script directories/files using BTreeMap for deterministic ordering
+    let mut seen_mods: BTreeMap<String, PathBuf> = BTreeMap::new();
 
     for entry in WalkDir::new(path).into_iter().flatten() {
         let file_path = entry.path();
@@ -330,31 +338,37 @@ fn scan_redscript_mods(path: &Path, list: &mut ModList, index: &mut u32) {
                 entry.file_name().to_string_lossy().into_owned()
             };
 
-            // Only add each mod directory once
-            if seen_mods.insert(mod_name.clone()) {
-                let name = format!("{} {}", ModType::Redscript.prefix(), mod_name);
-
-                // Compute hash from the .reds file
-                let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
-                    warn!("Failed to hash Redscript {}: {}", file_path.display(), e);
-                    ("0000000000000000".to_string(), 0)
-                });
-
-                let mod_entry = ModEntry::new(name, hash, size)
-                    .with_index(*index)
-                    .with_enabled(true);
-
-                list.push(mod_entry);
-                *index += 1;
-            }
+            // Only track first file encountered for each mod
+            seen_mods
+                .entry(mod_name)
+                .or_insert_with(|| file_path.to_path_buf());
         }
+    }
+
+    // Build entries from collected mods (BTreeMap ensures deterministic order)
+    for (mod_name, file_path) in seen_mods {
+        let name = format!("{} {}", ModType::Redscript.prefix(), mod_name);
+
+        // Compute hash from the .reds file
+        let hash = fingerprint_file(&file_path).unwrap_or_else(|e| {
+            warn!("Failed to hash Redscript {}: {}", file_path.display(), e);
+            "0000000000000000".to_string()
+        });
+        let size = file_size(&file_path).unwrap_or(0);
+
+        let mod_entry = ModEntry::new(name, hash, size)
+            .with_index(*index)
+            .with_enabled(true);
+
+        list.push(mod_entry);
+        *index += 1;
     }
 }
 
 /// Scans for TweakXL mods (`.yaml`/`.yml` files).
 fn scan_tweakxl_mods(path: &Path, list: &mut ModList, index: &mut u32) {
-    // Collect unique tweak directories/files
-    let mut seen_mods = std::collections::HashSet::new();
+    // Collect unique tweak directories/files using BTreeMap for deterministic ordering
+    let mut seen_mods: BTreeMap<String, PathBuf> = BTreeMap::new();
 
     for entry in WalkDir::new(path).into_iter().flatten() {
         let file_path = entry.path();
@@ -376,24 +390,30 @@ fn scan_tweakxl_mods(path: &Path, list: &mut ModList, index: &mut u32) {
                 entry.file_name().to_string_lossy().into_owned()
             };
 
-            // Only add each mod directory once
-            if seen_mods.insert(mod_name.clone()) {
-                let name = format!("{} {}", ModType::TweakXL.prefix(), mod_name);
-
-                // Compute hash from the yaml file
-                let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
-                    warn!("Failed to hash TweakXL {}: {}", file_path.display(), e);
-                    ("0000000000000000".to_string(), 0)
-                });
-
-                let mod_entry = ModEntry::new(name, hash, size)
-                    .with_index(*index)
-                    .with_enabled(true);
-
-                list.push(mod_entry);
-                *index += 1;
-            }
+            // Only track first file encountered for each mod
+            seen_mods
+                .entry(mod_name)
+                .or_insert_with(|| file_path.to_path_buf());
         }
+    }
+
+    // Build entries from collected mods (BTreeMap ensures deterministic order)
+    for (mod_name, file_path) in seen_mods {
+        let name = format!("{} {}", ModType::TweakXL.prefix(), mod_name);
+
+        // Compute hash from the yaml file
+        let hash = fingerprint_file(&file_path).unwrap_or_else(|e| {
+            warn!("Failed to hash TweakXL {}: {}", file_path.display(), e);
+            "0000000000000000".to_string()
+        });
+        let size = file_size(&file_path).unwrap_or(0);
+
+        let mod_entry = ModEntry::new(name, hash, size)
+            .with_index(*index)
+            .with_enabled(true);
+
+        list.push(mod_entry);
+        *index += 1;
     }
 }
 
@@ -460,16 +480,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mod_type_prefix() {
-        assert_eq!(ModType::Archive.prefix(), "");
-        assert_eq!(ModType::RedMod.prefix(), "[REDmod]");
-        assert_eq!(ModType::Red4ext.prefix(), "[RED4ext]");
-        assert_eq!(ModType::Cet.prefix(), "[CET]");
-        assert_eq!(ModType::Redscript.prefix(), "[Redscript]");
-        assert_eq!(ModType::TweakXL.prefix(), "[TweakXL]");
-    }
-
-    #[test]
     fn test_mod_paths_coverage() {
         // Ensure we have all 6 mod locations covered
         assert_eq!(MOD_PATHS.len(), 6);
@@ -481,6 +491,16 @@ mod tests {
         assert!(types.contains(&ModType::Cet));
         assert!(types.contains(&ModType::Redscript));
         assert!(types.contains(&ModType::TweakXL));
+    }
+
+    #[test]
+    fn test_mod_type_prefix() {
+        assert_eq!(ModType::Archive.prefix(), "[Archive]");
+        assert_eq!(ModType::RedMod.prefix(), "[REDmod]");
+        assert_eq!(ModType::Red4ext.prefix(), "[RED4ext]");
+        assert_eq!(ModType::Cet.prefix(), "[CET]");
+        assert_eq!(ModType::Redscript.prefix(), "[Redscript]");
+        assert_eq!(ModType::TweakXL.prefix(), "[TweakXL]");
     }
 
     #[test]

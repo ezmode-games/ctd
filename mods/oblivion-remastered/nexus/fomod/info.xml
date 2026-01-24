@@ -3,20 +3,20 @@
     <Name>CTD - Crash to Desktop Reporter</Name>
     <Author>ezmode.games</Author>
     <Version MachineVersion="0.1.4">0.1.4</Version>
-    <Id>ctd-fallout4</Id>
+    <Id>ctd-oblivion-remastered</Id>
     <Website>https://ctd.ezmode.games</Website>
-    <Description>Automatic crash reporting for Fallout 4.
+    <Description>Automatic crash reporting for Oblivion Remastered.
 
-When your game crashes, CTD captures detailed diagnostic information including your mod list, load order, and crash location. This data is sent to ctd.ezmode.games where it's analyzed to help identify mod conflicts and compatibility issues.
+When your game crashes, CTD captures detailed diagnostic information including your mod list and crash location. This data is sent to ctd.ezmode.games where it's analyzed to help identify mod conflicts and compatibility issues.
 
 Features:
 - Automatic crash detection via Windows SEH
-- Captures full mod fingerprints (hash, size, version)
+- Captures installed UE4SS mods
 - Identifies crash location in loaded modules
 - Privacy-focused: no personal data collected
 - Lightweight: minimal performance impact
 
-Requires F4SE.</Description>
+Requires UE4SS 3.0+.</Description>
     <Groups>
         <element>Utilities</element>
         <element>Debugging</element>

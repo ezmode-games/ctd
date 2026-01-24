@@ -1,8 +1,7 @@
 //! File fingerprinting for UE4SS mods.
 
-use ctd_core::file_hash::compute_file_hash;
+use ctd_core::fingerprint::{file_size, fingerprint_file, pe_version};
 use ctd_core::load_order::{ModEntry, ModList};
-use ctd_core::version::get_dll_version;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -53,13 +52,13 @@ pub fn scan_ue4ss_mods(game_dir: &Path) -> ModList {
         let lua_path = mod_dir.join("Scripts").join("main.lua");
 
         let (hash, size, version) = if dll_path.exists() {
-            let (h, s) =
-                compute_file_hash(&dll_path).unwrap_or(("0000000000000000".to_string(), 0));
-            let v = get_dll_version(&dll_path).ok();
+            let h = fingerprint_file(&dll_path).unwrap_or_else(|_| "0000000000000000".to_string());
+            let s = file_size(&dll_path).unwrap_or(0);
+            let v = pe_version(&dll_path);
             (h, s, v)
         } else if lua_path.exists() {
-            let (h, s) =
-                compute_file_hash(&lua_path).unwrap_or(("0000000000000000".to_string(), 0));
+            let h = fingerprint_file(&lua_path).unwrap_or_else(|_| "0000000000000000".to_string());
+            let s = file_size(&lua_path).unwrap_or(0);
             (h, s, None)
         } else {
             ("0000000000000000".to_string(), 0, None)

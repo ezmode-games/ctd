@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-01-23
+
+### Added
+- Mod fingerprinting with xxh3-64 hashing for crash pattern detection
+- Extended mod metadata: file size, version, mod type fields
+- Builder pattern for LoadOrderEntry construction
+- Cyberpunk: metadata collection for all 6 mod types (RED4ext, REDscript, CET, etc.)
+
+### Changed
+- Mod names no longer include type prefix (moved to dedicated `mod_type` field)
+
 ## [0.1.3] - 2026-01-14
 
 ### Added
@@ -55,3 +66,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.3]: https://github.com/ezmode-games/ctd/compare/skyrim-v0.1.2...skyrim-v0.1.3
 [0.1.2]: https://github.com/ezmode-games/ctd/compare/v0.1.1...skyrim-v0.1.2
 [0.1.1]: https://github.com/ezmode-games/ctd/releases/tag/v0.1.1
+[0.1.4]: https://github.com/ezmode-games/ctd/compare/skyrim-v0.1.3...skyrim-v0.1.4

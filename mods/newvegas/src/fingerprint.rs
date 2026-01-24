@@ -1,6 +1,6 @@
 //! File fingerprinting for Fallout: New Vegas mods.
 
-use ctd_core::file_hash::compute_file_hash;
+use ctd_core::fingerprint::{file_size, fingerprint_file};
 use ctd_core::load_order::{ModEntry, ModList};
 use std::path::PathBuf;
 
@@ -41,10 +41,8 @@ pub fn build_mod_list(mod_names: Vec<String>) -> ModList {
     for (index, name) in mod_names.into_iter().enumerate() {
         let path = data_dir.join(&name);
 
-        let (hash, size) = match compute_file_hash(&path) {
-            Ok((h, s)) => (h, s),
-            Err(_) => ("0000000000000000".to_string(), 0),
-        };
+        let hash = fingerprint_file(&path).unwrap_or_else(|_| "0000000000000000".to_string());
+        let size = file_size(&path).unwrap_or(0);
 
         let entry = ModEntry::new(&name, hash, size)
             .with_index(index as u32)

@@ -74,7 +74,7 @@ New-Item -ItemType Directory -Force -Path "$DistDir/$PluginPath" | Out-Null
 New-Item -ItemType Directory -Force -Path "$DistDir/fomod" | Out-Null
 
 # Copy DLL
-$DllName = if ($Mod -eq "oblivion-remastered") { "main.dll" } else { "ctd-$Mod.dll" }
+$DllName = if ($Mod -eq "oblivion-remastered" -or $Mod -eq "elden-ring") { "main.dll" } else { "ctd-$Mod.dll" }
 Copy-Item $Dll "$DistDir/$PluginPath/$DllName"
 
 # Create config
@@ -84,27 +84,63 @@ Copy-Item $Dll "$DistDir/$PluginPath/$DllName"
 url = "https://ctd.ezmode.games"
 "@ | Set-Content "$DistDir/$PluginPath/ctd.toml" -Encoding UTF8
 
-# FOMOD
-@"
+# Check for pre-made nexus folder with FOMOD
+$NexusDir = "$ModDir/nexus"
+$HasNexusFolder = Test-Path "$NexusDir/fomod"
+
+if ($HasNexusFolder) {
+    Write-Host "Using pre-made FOMOD from $NexusDir" -ForegroundColor Gray
+
+    # Copy fomod folder
+    Copy-Item "$NexusDir/fomod/*" "$DistDir/fomod/" -Recurse
+
+    # Copy images if present
+    if (Test-Path "$NexusDir/images") {
+        New-Item -ItemType Directory -Force -Path "$DistDir/images" | Out-Null
+        Copy-Item "$NexusDir/images/*" "$DistDir/images/" -Recurse
+    }
+
+    # Update version in info.xml
+    $InfoXml = "$DistDir/fomod/info.xml"
+    if (Test-Path $InfoXml) {
+        $infoContent = Get-Content $InfoXml -Raw
+        # Update Version element and MachineVersion attribute
+        $infoContent = $infoContent -replace '<Version[^>]*>[^<]*</Version>', "<Version MachineVersion=`"$Version`">$Version</Version>"
+        Set-Content $InfoXml $infoContent -Encoding UTF8
+    }
+} else {
+    Write-Host "Generating FOMOD (no nexus/ folder found)" -ForegroundColor Yellow
+
+    # FOMOD info.xml
+    @"
 <?xml version="1.0" encoding="UTF-8"?>
 <fomod>
-  <Name>CTD - Crash Reporter ($Mod)</Name>
-  <Author>ezmode.games</Author>
-  <Version>$Version</Version>
-  <Website>https://github.com/ezmode-games/ctd</Website>
+    <Name>CTD - Crash Reporter ($Mod)</Name>
+    <Author>ezmode.games</Author>
+    <Version MachineVersion="$Version">$Version</Version>
+    <Id>ctd-$Mod</Id>
+    <Website>https://ctd.ezmode.games</Website>
+    <Description>Automatic crash reporting. Helps identify and fix mod conflicts.</Description>
+    <Groups>
+        <element>Utilities</element>
+    </Groups>
 </fomod>
 "@ | Set-Content "$DistDir/fomod/info.xml" -Encoding UTF8
 
-$RootFolder = $PluginPath.Split("/")[0]
-@"
+    # FOMOD ModuleConfig.xml
+    $RootFolder = $PluginPath.Split("/")[0]
+    @"
 <?xml version="1.0" encoding="UTF-8"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <moduleName>CTD - $Mod</moduleName>
-  <requiredInstallFiles>
-    <folder source="$RootFolder" destination="$RootFolder"/>
-  </requiredInstallFiles>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
+    <moduleName position="RightOfImage" colour="990000">CTD - Crash to Desktop Reporter</moduleName>
+
+    <requiredInstallFiles>
+        <folder source="$RootFolder" destination="$RootFolder"/>
+    </requiredInstallFiles>
 </config>
 "@ | Set-Content "$DistDir/fomod/ModuleConfig.xml" -Encoding UTF8
+}
 
 # README
 @"
@@ -114,6 +150,7 @@ Game: $Mod
 Version: $Version
 Requires: $ScriptExtender
 
+https://ctd.ezmode.games
 https://github.com/ezmode-games/ctd
 "@ | Set-Content "$DistDir/README.txt" -Encoding UTF8
 

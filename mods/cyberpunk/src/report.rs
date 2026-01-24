@@ -269,8 +269,10 @@ fn get_red4ext_version() -> Option<String> {
 fn get_os_version() -> Option<String> {
     use windows::Win32::System::SystemInformation::{GetVersionExW, OSVERSIONINFOW};
 
-    let mut info = OSVERSIONINFOW::default();
-    info.dwOSVersionInfoSize = std::mem::size_of::<OSVERSIONINFOW>() as u32;
+    let mut info = OSVERSIONINFOW {
+        dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as u32,
+        ..Default::default()
+    };
 
     // SAFETY: GetVersionExW is safe with a properly sized OSVERSIONINFOW
     #[allow(deprecated)]

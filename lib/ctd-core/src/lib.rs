@@ -10,6 +10,7 @@ pub mod api_client;
 pub mod config;
 pub mod crash_report;
 pub mod file_hash;
+pub mod fingerprint;
 pub mod load_order;
 pub mod symbols;
 pub mod version;
