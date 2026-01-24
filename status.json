@@ -57,10 +57,10 @@
                                               }
                             },
                  "oblivion-remastered":  {
-                                             "name":  "CTD Crash Reporter",
-                                             "game":  "Oblivion Remastered",
-                                             "status":  "alpha",
-                                             "version":  null,
+                                            "name":  "CTD Crash Reporter",
+                                            "game":  "Oblivion Remastered",
+                                            "status":  "alpha",
+                                            "version":  "0.1.4",
                                              "build_type":  "cmake",
                                              "quality":  "experimental",
                                              "features":  [
@@ -68,7 +68,7 @@
                                                               "load_order"
                                                           ],
                                              "published":  {
-                                                               "github":  null,
+                                                               "github":  "https://github.com/ezmode-games/ctd/releases/tag/oblivion-remastered-v0.1.4",
                                                                "nexus":  null,
                                                                "ezmode":  null
                                                            }

@@ -14,9 +14,9 @@ Automatic crash reporting for modded games. Captures crash context and helps ide
 | Fallout 3 | FOSE | Beta | v0.1.4 | [v0.1.4](https://github.com/ezmode-games/ctd/releases/tag/fallout3-v0.1.4) |
 | Fallout 4 | F4SE | Beta | v0.1.4 | [v0.1.4](https://github.com/ezmode-games/ctd/releases/tag/fallout4-v0.1.4) |
 | Fallout: New Vegas | NVSE | Beta | v0.1.4 | [v0.1.4](https://github.com/ezmode-games/ctd/releases/tag/newvegas-v0.1.4) |
+| Oblivion Remastered | UE4SS | Alpha | v0.1.4 | [v0.1.4](https://github.com/ezmode-games/ctd/releases/tag/oblivion-remastered-v0.1.4) |
 | The Elder Scrolls V: Skyrim | SKSE64 | Beta | v0.1.4 | [v0.1.4](https://github.com/ezmode-games/ctd/releases/tag/skyrim-v0.1.4) |
 | Elden Ring | UE4SS | Wip | - | - |
-| Oblivion Remastered | UE4SS | Alpha | - | - |
 
 ## What It Captures
 
