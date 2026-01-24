@@ -24,8 +24,8 @@
                  "ue5":  {
                              "name":  "CTD Crash Reporter",
                              "game":  "Unreal Engine 5 (Generic)",
-                             "status":  "alpha",
-                             "version":  "0.1.4",
+                             "status":  "internal",
+                             "version":  null,
                              "build_type":  "cargo",
                              "quality":  "experimental",
                              "features":  [
@@ -33,7 +33,7 @@
                                               "pak_scanning"
                                           ],
                              "published":  {
-                                               "github":  "https://github.com/ezmode-games/ctd/releases/tag/ue5-v0.1.4",
+                                               "github":  null,
                                                "nexus":  null,
                                                "ezmode":  null
                                            }

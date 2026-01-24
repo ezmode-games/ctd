@@ -32,7 +32,10 @@ $rows += "| Game | Plugin | Status | Version | Download |"
 $rows += "|------|--------|--------|---------|----------|"
 
 # Order: released first (by game name), then unreleased
-$mods = $status.mods.PSObject.Properties | Sort-Object {
+# Skip internal mods (not meant for public release)
+$mods = $status.mods.PSObject.Properties | Where-Object {
+    $_.Value.status -ne "internal"
+} | Sort-Object {
     $mod = $_.Value
     $hasRelease = $null -ne $mod.version
     if ($hasRelease) { "0_$($mod.game)" } else { "1_$($mod.game)" }
