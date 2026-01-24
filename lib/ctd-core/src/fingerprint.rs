@@ -121,6 +121,12 @@ pub fn pe_version(path: &Path) -> Option<String> {
 
     let info = unsafe { &*(info_ptr as *const VsFixedFileInfo) };
 
+    // Validate VS_FIXEDFILEINFO signature
+    const VS_FFI_SIGNATURE: u32 = 0xFEEF04BD;
+    if info.dw_signature != VS_FFI_SIGNATURE {
+        return None;
+    }
+
     // Extract version numbers
     let major = (info.dw_file_version_ms >> 16) & 0xFFFF;
     let minor = info.dw_file_version_ms & 0xFFFF;

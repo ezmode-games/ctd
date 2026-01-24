@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Mod fingerprinting with xxh3-64 hashing for crash pattern detection
+- Extended mod metadata: file size, version, mod type fields
+- Builder pattern for LoadOrderEntry construction
+- Cyberpunk: metadata collection for all 6 mod types (RED4ext, REDscript, CET, etc.)
+
+### Changed
+- Mod names no longer include type prefix (moved to dedicated `mod_type` field)
+
 ## [0.1.3] - 2026-01-14
 
 ### Added
