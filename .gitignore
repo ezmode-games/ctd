@@ -21,3 +21,4 @@ mods/*/dist/
 
 # Random binaries
 *.exe
+.serena/  
