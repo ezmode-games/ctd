@@ -23,7 +23,7 @@ app.get('/health', (c) => {
 // Mount route apps
 app.route('/api-keys', apiKeysApp);
 app.route('/calibration', calibrationApp);
-app.route('/config', configApp);
+app.route('/setup', configApp);
 app.route('/crashes', crashesApp);
 app.route('/patterns', patternsApp);
 
