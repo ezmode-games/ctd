@@ -6,13 +6,14 @@ game_slug = "oblivionremastered"
 
 [mod]
 name = "CTD Crash Reporter"
-version = "0.1.0"
+version = "0.1.4"
 game = "oblivion-remastered"
 game_id = 7737  # Oblivion Remastered on Nexus
 
 [build]
 type = "ue4ss"
 arch = "x64"
+plugin_path = "Mods/CTDCrashReporter/dlls"
 
 [description]
 summary = "Automatic crash reporting for Oblivion Remastered"
