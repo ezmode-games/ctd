@@ -82,7 +82,47 @@ pnpm install
 pnpm dev
 ```
 
-See [API Documentation](https://ctd.ezmode.games/docs) for endpoints.
+### API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /crashes` | Submit a crash report |
+| `GET /crashes/{id}` | Get crash report details |
+| `POST /api-keys` | Create an API key |
+| `GET /api-keys` | List your API keys |
+| `GET /setup?key=<api_key>` | Download ctd.toml config |
+| `GET /patterns` | List crash patterns |
+| `GET /patterns/{id}` | Pattern details with mod correlations |
+| `GET /calibration/metrics` | Prediction calibration metrics |
+| `GET /docs` | Interactive API documentation |
+
+### User Setup
+
+Users need a `ctd.toml` config file with your server URL and their API key.
+
+**Option 1: Download via API**
+```bash
+curl "https://your-server.com/setup?key=ctd_yourkey" -o ctd.toml
+```
+
+**Option 2: Manual creation**
+```toml
+# ctd.toml
+[api]
+url = "https://your-server.com"
+api_key = "ctd_yourkey"
+```
+
+**Installation paths:**
+| Game | Path |
+|------|------|
+| Skyrim SE | `Data/SKSE/Plugins/ctd.toml` |
+| Fallout 4 | `Data/F4SE/Plugins/ctd.toml` |
+| Fallout 3 | `Data/FOSE/Plugins/ctd.toml` |
+| Fallout: New Vegas | `Data/NVSE/Plugins/ctd.toml` |
+| Cyberpunk 2077 | `red4ext/plugins/ctd/ctd.toml` |
+
+See [API Documentation](https://ctd.ezmode.games/docs) for full endpoint details.
 
 ## License
 
