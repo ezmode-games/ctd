@@ -4,8 +4,10 @@ import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 
 import { apiKeysApp } from '@/routes/api-keys';
+import { calibrationApp } from '@/routes/calibration';
 import { configApp } from '@/routes/config';
 import { crashesApp } from '@/routes/crashes';
+import { patternsApp } from '@/routes/patterns';
 
 const app = new OpenAPIHono();
 
@@ -20,8 +22,10 @@ app.get('/health', (c) => {
 
 // Mount route apps
 app.route('/api-keys', apiKeysApp);
+app.route('/calibration', calibrationApp);
 app.route('/config', configApp);
 app.route('/crashes', crashesApp);
+app.route('/patterns', patternsApp);
 
 // OpenAPI documentation
 app.doc('/doc', {

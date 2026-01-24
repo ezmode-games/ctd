@@ -200,6 +200,7 @@ apiKeysApp.openapi(listApiKeysRoute, async (c) => {
 	});
 });
 
+// @ts-expect-error Hono OpenAPI type limitation with union response types
 apiKeysApp.openapi(deleteApiKeyRoute, async (c) => {
 	const { id } = c.req.valid('param');
 

@@ -274,6 +274,7 @@ crashesApp.openapi(submitCrashRoute, async (c) => {
 	return c.json({ id, shareToken }, 201);
 });
 
+// @ts-expect-error Hono OpenAPI type limitation with union response types
 crashesApp.openapi(getCrashRoute, async (c) => {
 	const { id } = c.req.valid('param');
 	const { token } = c.req.valid('query');
