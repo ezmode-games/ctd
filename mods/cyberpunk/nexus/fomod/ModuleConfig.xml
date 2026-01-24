@@ -5,6 +5,6 @@
     <moduleImage path="images/logo.png" showImage="true" showFade="true" height="100" />
 
     <requiredInstallFiles>
-        <folder source="F4SE" destination="F4SE" />
+        <folder source="red4ext" destination="red4ext" />
     </requiredInstallFiles>
 </config>

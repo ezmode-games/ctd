@@ -1,0 +1,10 @@
+# CTD Crash Reporter Configuration
+# https://github.com/ezmode-games/ctd
+
+[server]
+# Set your self-hosted server URL
+url = "https://your-server.example.com"
+
+[user]
+# Optional: Add your API key for crash tracking
+# api_key = "your-key-here"

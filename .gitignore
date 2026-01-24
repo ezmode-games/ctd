@@ -15,8 +15,7 @@ mods/*/deps/*.zip
 # Build output
 dist/
 
-# Nexus release packages (build artifacts)
-mods/*/nexus/
+# Per-mod distribution artifacts
 mods/*/dist/
 
 # Random binaries
