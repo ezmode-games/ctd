@@ -37,15 +37,15 @@ if ($gitStatus) {
 # Step 1: Build (if CMake mod and not skipped)
 $HasCMake = Test-Path "mods/$Mod/CMakeLists.txt"
 if ($HasCMake -and -not $SkipBuild) {
-    Write-Host "`n[1/5] Building $Mod..." -ForegroundColor Yellow
+    Write-Host "`n[1/6] Building $Mod..." -ForegroundColor Yellow
     & "$ScriptDir/build-mod.ps1" -Mod $Mod
     if ($LASTEXITCODE -ne 0) { exit 1 }
 } else {
-    Write-Host "`n[1/5] Build skipped" -ForegroundColor Gray
+    Write-Host "`n[1/6] Build skipped" -ForegroundColor Gray
 }
 
 # Step 2: Package
-Write-Host "`n[2/5] Packaging..." -ForegroundColor Yellow
+Write-Host "`n[2/6] Packaging..." -ForegroundColor Yellow
 & "$ScriptDir/package-mod.ps1" -Mod $Mod -Version $Version
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
@@ -55,7 +55,7 @@ if (-not (Test-Path $ArchivePath)) {
 }
 
 # Step 3: Create and push tag
-Write-Host "`n[3/5] Creating tag $Tag..." -ForegroundColor Yellow
+Write-Host "`n[3/6] Creating tag $Tag..." -ForegroundColor Yellow
 git tag $Tag 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Tag already exists, using existing tag" -ForegroundColor Gray
@@ -66,7 +66,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Step 4: Wait for release to be created (or create it)
-Write-Host "`n[4/5] Creating/finding release..." -ForegroundColor Yellow
+Write-Host "`n[4/6] Creating/finding release..." -ForegroundColor Yellow
 Start-Sleep -Seconds 5  # Give workflow time to start
 
 # Check if release exists, if not create it
@@ -98,7 +98,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Step 5: Upload artifact
-Write-Host "`n[5/5] Uploading $ArchiveName..." -ForegroundColor Yellow
+Write-Host "`n[5/6] Uploading $ArchiveName..." -ForegroundColor Yellow
 gh release upload $Tag $ArchivePath --clobber
 
 # Publish if it was a draft
@@ -106,6 +106,10 @@ if ($HasCMake) {
     Write-Host "`nPublishing release..." -ForegroundColor Yellow
     gh release edit $Tag --draft=false
 }
+
+# Step 6: Update README
+Write-Host "`n[6/6] Updating README..." -ForegroundColor Yellow
+& "$ScriptDir/update-readme.ps1"
 
 Write-Host "`n=== Release complete! ===" -ForegroundColor Green
 Write-Host "https://github.com/ezmode-games/ctd/releases/tag/$Tag"
