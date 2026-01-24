@@ -24,7 +24,7 @@ pub struct ModEntry {
     /// Mod/plugin name (e.g., "SkyUI_SE.esp", "[RED4ext] ArchiveXL")
     pub name: String,
 
-    /// SHA256 fingerprint (16 hex chars from file_hash module)
+    /// xxh3-64 fingerprint (16 hex chars from fingerprint module)
     pub file_hash: String,
 
     /// File size in bytes

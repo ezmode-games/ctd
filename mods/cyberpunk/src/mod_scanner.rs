@@ -16,9 +16,8 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use ctd_core::file_hash::compute_file_hash;
+use ctd_core::fingerprint::{file_size, fingerprint_file, pe_version};
 use ctd_core::load_order::{ModEntry, ModList};
-use ctd_core::version::get_dll_version;
 use thiserror::Error;
 use tracing::{debug, warn};
 use walkdir::WalkDir;
@@ -191,10 +190,11 @@ fn scan_archive_mods(path: &Path, list: &mut ModList, index: &mut u32) {
             );
 
             // Compute hash and size
-            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+            let hash = fingerprint_file(file_path).unwrap_or_else(|e| {
                 warn!("Failed to hash archive {}: {}", file_path.display(), e);
-                ("0000000000000000".to_string(), 0)
+                "0000000000000000".to_string()
             });
+            let size = file_size(file_path).unwrap_or(0);
 
             let mod_entry = ModEntry::new(name, hash, size)
                 .with_index(*index)
@@ -222,14 +222,15 @@ fn scan_redmod_mods(path: &Path, list: &mut ModList, index: &mut u32) {
             );
 
             // Compute hash from info.json file
-            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+            let hash = fingerprint_file(file_path).unwrap_or_else(|e| {
                 warn!(
                     "Failed to hash REDmod info.json {}: {}",
                     file_path.display(),
                     e
                 );
-                ("0000000000000000".to_string(), 0)
+                "0000000000000000".to_string()
             });
+            let size = file_size(file_path).unwrap_or(0);
 
             // Extract version from info.json
             let version = get_redmod_version(mod_dir);
@@ -263,13 +264,14 @@ fn scan_red4ext_mods(path: &Path, list: &mut ModList, index: &mut u32) {
             let name = format!("{} {}", ModType::Red4ext.prefix(), filename);
 
             // Compute hash and size
-            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+            let hash = fingerprint_file(file_path).unwrap_or_else(|e| {
                 warn!("Failed to hash RED4ext DLL {}: {}", file_path.display(), e);
-                ("0000000000000000".to_string(), 0)
+                "0000000000000000".to_string()
             });
+            let size = file_size(file_path).unwrap_or(0);
 
             // Extract DLL version
-            let version = get_dll_version(file_path).ok();
+            let version = pe_version(file_path);
 
             let mut mod_entry = ModEntry::new(name, hash, size)
                 .with_index(*index)
@@ -297,10 +299,11 @@ fn scan_cet_mods(path: &Path, list: &mut ModList, index: &mut u32) {
             let name = format!("{} {}", ModType::Cet.prefix(), mod_name.to_string_lossy());
 
             // Compute hash from init.lua
-            let (hash, size) = compute_file_hash(file_path).unwrap_or_else(|e| {
+            let hash = fingerprint_file(file_path).unwrap_or_else(|e| {
                 warn!("Failed to hash CET init.lua {}: {}", file_path.display(), e);
-                ("0000000000000000".to_string(), 0)
+                "0000000000000000".to_string()
             });
+            let size = file_size(file_path).unwrap_or(0);
 
             let mod_entry = ModEntry::new(name, hash, size)
                 .with_index(*index)
@@ -347,10 +350,11 @@ fn scan_redscript_mods(path: &Path, list: &mut ModList, index: &mut u32) {
         let name = format!("{} {}", ModType::Redscript.prefix(), mod_name);
 
         // Compute hash from the .reds file
-        let (hash, size) = compute_file_hash(&file_path).unwrap_or_else(|e| {
+        let hash = fingerprint_file(&file_path).unwrap_or_else(|e| {
             warn!("Failed to hash Redscript {}: {}", file_path.display(), e);
-            ("0000000000000000".to_string(), 0)
+            "0000000000000000".to_string()
         });
+        let size = file_size(&file_path).unwrap_or(0);
 
         let mod_entry = ModEntry::new(name, hash, size)
             .with_index(*index)
@@ -398,10 +402,11 @@ fn scan_tweakxl_mods(path: &Path, list: &mut ModList, index: &mut u32) {
         let name = format!("{} {}", ModType::TweakXL.prefix(), mod_name);
 
         // Compute hash from the yaml file
-        let (hash, size) = compute_file_hash(&file_path).unwrap_or_else(|e| {
+        let hash = fingerprint_file(&file_path).unwrap_or_else(|e| {
             warn!("Failed to hash TweakXL {}: {}", file_path.display(), e);
-            ("0000000000000000".to_string(), 0)
+            "0000000000000000".to_string()
         });
+        let size = file_size(&file_path).unwrap_or(0);
 
         let mod_entry = ModEntry::new(name, hash, size)
             .with_index(*index)
