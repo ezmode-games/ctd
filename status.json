@@ -127,17 +127,17 @@
                                                  }
                                },
                  "elden-ring":  {
-                                    "name":  "CTD Crash Reporter",
-                                    "game":  "Elden Ring",
-                                    "status":  "wip",
-                                    "version":  null,
+                                   "name":  "CTD Crash Reporter",
+                                   "game":  "Elden Ring",
+                                   "status":  "alpha",
+                                   "version":  "0.1.4",
                                     "build_type":  "cmake",
-                                    "quality":  "scaffolding",
+                                    "quality":  "experimental",
                                     "features":  [
                                                      "crash_capture"
                                                  ],
                                     "published":  {
-                                                      "github":  null,
+                                                      "github":  "https://github.com/ezmode-games/ctd/releases/tag/elden-ring-v0.1.4",
                                                       "nexus":  null,
                                                       "ezmode":  null
                                                   }

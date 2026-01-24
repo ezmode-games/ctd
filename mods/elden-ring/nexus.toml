@@ -1,14 +1,19 @@
 # Nexus Mods metadata for CTD Crash Reporter - Elden Ring
 
+[nexus]
+game_slug = "eldenring"
+# mod_id = 12345  # uncomment when published
+
 [mod]
 name = "CTD Crash Reporter"
-version = "0.1.0"
+version = "0.1.4"
 game = "elden-ring"
 game_id = 2922  # Elden Ring on Nexus
 
 [build]
 type = "ue4ss"
 arch = "x64"
+plugin_path = "Mods/CTDCrashReporter/dlls"
 
 [description]
 summary = "Automatic crash reporting for Elden Ring"
